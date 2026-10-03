@@ -1,0 +1,1535 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>SuperWorld Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=Unbounded:wght@500;700&display=swap">
+<style>
+/* Layout: a world atlas. A sticky chapter rail sits over stacked plates; each plate opens with a figure you can poke at. */
+:root{
+  --bg:#EDF0F6; --surface:#FFFFFF; --surface-2:#E3E8F1; --ink:#131A2C; --muted:#56607A; --line:#CBD3E1;
+  --accent:#2C47D6; --accent-ink:#FFFFFF; --accent-soft:#DDE3FF;
+  --z-plaza:#C97A0E; --z-arena:#D2452F; --z-culture:#0F7F73; --z-private:#6E46C9; --z-solo:#B8327F;
+  --good:#1B7F45; --warn:#9A6408; --bad:#B4321F;
+  --font-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --font-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C111E; --surface:#141B2C; --surface-2:#1B2438; --ink:#E6EBF5; --muted:#99A3BA; --line:#2A3450;
+    --accent:#8FA3FF; --accent-ink:#0C111E; --accent-soft:#1F2A52;
+    --z-plaza:#F2AE45; --z-arena:#FF8068; --z-culture:#41C7B6; --z-private:#AE92FF; --z-solo:#F57CC0;
+    --good:#55C987; --warn:#E8B655; --bad:#FF7A68;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C111E; --surface:#141B2C; --surface-2:#1B2438; --ink:#E6EBF5; --muted:#99A3BA; --line:#2A3450;
+  --accent:#8FA3FF; --accent-ink:#0C111E; --accent-soft:#1F2A52;
+  --z-plaza:#F2AE45; --z-arena:#FF8068; --z-culture:#41C7B6; --z-private:#AE92FF; --z-solo:#F57CC0;
+  --good:#55C987; --warn:#E8B655; --bad:#FF7A68;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-underline-offset:3px}
+p{margin:0}
+ul,ol{margin:0;padding:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1100px;margin-inline:auto;padding-inline:clamp(16px,4vw,40px)}
+.mono{font-family:var(--font-mono)}
+.muted{color:var(--muted)}
+
+/* chapter rail */
+.rail{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.rail .wrap{display:flex;align-items:center;gap:14px;padding-block:9px}
+.brand{font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:.01em;white-space:nowrap;color:var(--ink);text-decoration:none}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1;padding-block:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{font:500 12.5px/1 var(--font-mono);padding:8px 11px;border-radius:999px;border:1px solid var(--line);color:var(--muted);text-decoration:none;white-space:nowrap;background:var(--surface)}
+.chip:hover{color:var(--ink)}
+.chip[aria-current="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+@media (max-width:560px){.brand{display:none}}
+
+/* plates */
+section{padding-block:clamp(44px,7vw,76px);border-top:1px solid var(--line);scroll-margin-top:58px}
+section.hero{border-top:0;padding-block:clamp(28px,5vw,56px) clamp(44px,7vw,76px)}
+.eyebrow{font:500 12px/1.3 var(--font-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+h1,h2{font-family:var(--font-display);text-wrap:balance;margin:0;letter-spacing:-.015em}
+h1{font-size:clamp(36px,7.4vw,64px);line-height:1;font-weight:700}
+h2{font-size:clamp(23px,3.4vw,33px);line-height:1.15;font-weight:500}
+h3{font-size:17px;line-height:1.3;margin:0;font-weight:700}
+.head{display:grid;gap:10px;margin-bottom:clamp(22px,3vw,32px)}
+.lead{font-size:clamp(17px,2vw,19px);max-width:62ch;line-height:1.5}
+.note{font-size:14.5px;color:var(--muted);max-width:66ch}
+.sub{margin-top:clamp(30px,4vw,44px);margin-bottom:14px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sub h3{font-size:18px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius)}
+.pill{display:inline-flex;align-items:center;gap:6px;font:500 11.5px/1 var(--font-mono);letter-spacing:.02em;padding:5px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--surface);white-space:nowrap}
+.pill.now{color:var(--good);border-color:color-mix(in srgb,var(--good) 45%,var(--line));background:color-mix(in srgb,var(--good) 10%,var(--surface))}
+.pill.later{color:var(--muted)}
+.pill.maybe{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,var(--line));background:color-mix(in srgb,var(--warn) 10%,var(--surface))}
+.pill.rec{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
+.grid{display:grid;gap:14px}
+.min0{min-width:0}
+
+/* hero */
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:clamp(24px,4vw,48px);align-items:start}
+@media (max-width:860px){.hero-grid{grid-template-columns:minmax(0,1fr)}}
+.hero h1{margin-top:12px}
+.hero .lead{margin-top:16px}
+.choices{display:grid;gap:0;margin-top:24px;border-top:1px solid var(--line)}
+.choices div{display:grid;grid-template-columns:7.2em minmax(0,1fr);gap:12px;padding-block:11px;border-bottom:1px solid var(--line)}
+.choices dt{font:500 12px/1.6 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.choices dd{margin:0}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.btn{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:15px;padding:11px 16px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-decoration:none;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:hover{border-color:var(--ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+
+/* world map */
+.mapcard{padding:12px}
+.map{display:block;width:100%;height:auto}
+.mapbg{fill:var(--surface-2)}
+.gridline{stroke:var(--line);stroke-width:.7}
+.roads line{stroke:var(--muted);stroke-width:2.2;stroke-linecap:round;opacity:.5}
+.roads .solo-road{stroke-dasharray:3 7}
+.zone{cursor:pointer;outline:none}
+.zone .fill{fill:color-mix(in srgb,var(--z) 13%,var(--surface));stroke:var(--z);stroke-width:1.6;transition:fill .15s,stroke-width .15s}
+.zone[data-zone="solo"] .fill{stroke-dasharray:6 5}
+.zone .glyph{fill:color-mix(in srgb,var(--z) 32%,var(--surface));stroke:var(--z);stroke-width:1.5}
+.zone .gline{fill:none;stroke:var(--z);stroke-width:1.5;stroke-linecap:round}
+.zone .dot{fill:var(--z)}
+.zlabel{fill:var(--ink);font:700 16px var(--font-body)}
+.zone:hover .fill{fill:color-mix(in srgb,var(--z) 22%,var(--surface))}
+.zone[aria-pressed="true"] .fill{fill:color-mix(in srgb,var(--z) 26%,var(--surface));stroke-width:3.2}
+.zone:focus-visible .fill{stroke:var(--accent);stroke-width:3.2}
+.maphint{font:500 12px var(--font-mono);fill:var(--muted)}
+.zpanel{margin-top:12px;padding:16px 16px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.zp-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.zp-top .swatch{width:12px;height:12px;border-radius:3px;background:var(--z);flex:none}
+.zpanel dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;margin:12px 0 0}
+.zpanel dt{font:500 11.5px/1.7 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.zpanel dd{margin:0}
+@media (max-width:420px){.zpanel dl{grid-template-columns:minmax(0,1fr)}.zpanel dd{margin-bottom:6px}}
+
+/* loop */
+.loopwrap{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:clamp(20px,4vw,48px);align-items:center}
+@media (max-width:820px){.loopwrap{grid-template-columns:minmax(0,1fr)}}
+.loop{width:100%;height:auto;display:block}
+.loop.tall{display:none;max-width:360px;margin-inline:auto}
+@media (max-width:560px){.loop.wide{display:none}.loop.tall{display:block}}
+.lbox{fill:var(--surface);stroke:var(--line);stroke-width:1.4}
+.lbox.entry{stroke:var(--accent);stroke-dasharray:5 4}
+.lt{fill:var(--ink);font:700 14px var(--font-body)}
+.ls{fill:var(--muted);font:400 12px var(--font-body)}
+.lnum{fill:var(--accent);font:500 12px var(--font-mono)}
+.larrow{fill:none;stroke:var(--muted);stroke-width:1.6}
+.ahead{fill:var(--muted)}
+.lrep{fill:var(--muted);font:500 12px var(--font-mono)}
+.rules{display:grid;gap:12px}
+.rule{padding:16px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.rule .eyebrow{margin-bottom:6px}
+
+/* engine */
+.engines{grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))}
+.eng{padding:18px;display:flex;flex-direction:column;gap:12px}
+.eng.best{border:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--surface))}
+.eng-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.eng .what{font-size:14.5px;color:var(--muted)}
+.ratings{display:grid;gap:9px;margin-top:2px}
+.rating{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:start;padding-top:9px;border-top:1px solid var(--line)}
+.rating .k{font-weight:700;font-size:14px}
+.rating .v{font-size:13.5px;color:var(--muted);grid-column:1 / -1}
+.mark{font:500 11px/1 var(--font-mono);padding:4px 7px;border-radius:6px;letter-spacing:.03em;text-transform:uppercase}
+.mark.yes{color:var(--good);background:color-mix(in srgb,var(--good) 13%,var(--surface))}
+.mark.part{color:var(--warn);background:color-mix(in srgb,var(--warn) 13%,var(--surface))}
+.mark.no{color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--surface))}
+
+/* architecture */
+.layers{display:grid;gap:0}
+.layer{border:1px solid var(--line);border-radius:var(--radius);padding:14px;background:var(--surface)}
+.layer.data{background:var(--surface-2)}
+.layer.engine{border:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--surface))}
+.layer-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.layer-h h3{font-size:16px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:10px}
+.tile{padding:12px 13px;border-radius:10px;border:1px solid var(--line);background:var(--surface)}
+.layer.engine .tile{background:var(--surface)}
+.tile b{display:block;font-size:15px}
+.tile span{display:block;font-size:13.5px;color:var(--muted);margin-top:2px}
+.flow{display:flex;align-items:center;justify-content:center;gap:10px;padding-block:8px;color:var(--muted);font:500 12.5px var(--font-mono)}
+.flow svg{flex:none}
+.flow path{stroke:var(--muted);fill:none;stroke-width:1.6}
+.thumb{margin-top:16px;padding:14px 16px;border-radius:12px;border:1px dashed var(--line);font-size:15px;max-width:72ch}
+.seg{display:inline-flex;flex-wrap:wrap;gap:4px;padding:4px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+.seg button{font:500 13px/1 var(--font-mono);padding:8px 11px;border:0;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 0 var(--line),0 0 0 1px var(--line)}
+.lessons{display:grid;gap:0;border-top:1px solid var(--line);max-width:860px}
+.lesson{display:grid;grid-template-columns:9em minmax(0,1fr);gap:4px 18px;padding-block:12px;border-bottom:1px solid var(--line);align-items:start}
+.lesson .part{font-weight:700}
+.lesson .ours{font-size:15px}
+.lesson-head{font:500 11.5px var(--font-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+@media (max-width:520px){
+  .lesson{grid-template-columns:minmax(0,1fr)}
+  .lesson[aria-hidden="true"]{display:none}
+}
+
+
+/* travel */
+svg [hidden]{display:none}
+.levels svg{display:block;width:100%;height:auto}
+.lv-cap{font-size:14.5px;margin-top:10px;min-height:3.2em}
+.lv-cap b{display:block;font-size:15px;margin-bottom:2px}
+.you{fill:var(--accent)}
+.you-ring{fill:none;stroke:var(--accent);stroke-width:2}
+.other{fill:var(--muted)}
+.friend{fill:var(--z-culture)}
+.mini{fill:var(--surface);stroke:var(--line);stroke-width:1.4}
+.silh{fill:var(--line)}
+.tlabel{fill:var(--accent);font:500 11.5px var(--font-mono)}
+.tlabel.m{fill:var(--muted)}
+.path{fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:5 5}
+.bt{fill:color-mix(in srgb,var(--z) 35%,var(--surface));stroke:var(--z);stroke-width:1.2}
+.bl{fill:color-mix(in srgb,var(--z) 55%,var(--surface));stroke:var(--z);stroke-width:1.2}
+.br{fill:color-mix(in srgb,var(--z) 75%,var(--surface-2));stroke:var(--z);stroke-width:1.2}
+.az{fill:color-mix(in srgb,var(--z) 14%,var(--surface));stroke:var(--z);stroke-width:1.5}
+.az.dash{stroke-dasharray:5 4}
+.azl{fill:var(--ink);font:700 13px var(--font-body)}
+.live{fill:var(--z-arena)}
+.livet{fill:var(--surface);font:500 10.5px var(--font-mono)}
+.trip{display:grid;gap:18px;align-content:start}
+.rulelist{display:grid;gap:8px}
+.rulelist div{padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:14.5px}
+.rulelist b{margin-right:4px}
+
+/* agents & sdk */
+.steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;counter-reset:s}
+@media (max-width:900px){.steps{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}}
+.step{padding:14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);position:relative}
+.step .n{font:500 12px var(--font-mono);color:var(--accent)}
+.step h3{font-size:16px;margin-top:4px}
+.step p{font-size:14px;color:var(--muted);margin-top:4px}
+.step.gate{border-style:dashed;border-color:var(--z-arena)}
+.step.gate .n{color:var(--z-arena)}
+.sdk-wrap{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:clamp(20px,3vw,36px);align-items:start}
+@media (max-width:900px){.sdk-wrap{grid-template-columns:minmax(0,1fr)}}
+.mods{grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:10px}
+.mods .mod:last-child{grid-column:1 / -1}
+.mod{padding:14px;display:grid;gap:8px}
+.mod .name{font:500 12.5px var(--font-mono);color:var(--accent)}
+.mod dl{margin:0;display:grid;gap:6px}
+.mod dt{font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.mod dd{margin:0;font-size:14px}
+.shader{padding:14px}
+.shader svg{display:block;width:100%;height:auto;max-width:380px;margin-inline:auto}
+.sb{fill:var(--surface);stroke:var(--line);stroke-width:1.4}
+.sb.final{fill:color-mix(in srgb,var(--accent) 12%,var(--surface));stroke:var(--accent);stroke-width:2}
+.sb.use{fill:color-mix(in srgb,var(--good) 10%,var(--surface));stroke:var(--good)}
+.sd{fill:var(--surface-2);stroke:var(--muted);stroke-width:1.4}
+.st{fill:var(--ink);font:700 13px var(--font-body)}
+.ss{fill:var(--muted);font:400 11.5px var(--font-body)}
+.se{fill:var(--muted);font:500 11.5px var(--font-mono)}
+.sl{fill:none;stroke:var(--muted);stroke-width:1.5}
+.sl.no{stroke:var(--z-arena);stroke-dasharray:4 4}
+.ahead-no{fill:var(--z-arena)}
+
+/* styles */
+.mixer{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(18px,3vw,32px);align-items:start}
+@media (max-width:880px){.mixer{grid-template-columns:minmax(0,1fr)}}
+.topics{display:grid;gap:14px}
+.topic .eyebrow{margin-bottom:6px}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opt{font:700 13.5px/1 var(--font-body);padding:9px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.opt:hover{border-color:var(--ink)}
+.opt[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.preview{position:sticky;top:76px;display:grid;gap:10px}
+@media (max-width:880px){.preview{position:static}}
+.canvasbox{border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);background:var(--surface-2);aspect-ratio:8/5;max-width:100%}
+.canvasbox canvas{display:block;width:100%;height:100%}
+.profile{margin:0;padding:14px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font:400 12.5px/1.6 var(--font-mono);overflow-x:auto;color:var(--ink);white-space:pre}
+.profile .k{color:var(--accent)}
+.profile .inh{color:var(--muted)}
+.pv-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.chain{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px}
+.chain .lvl{flex:1 1 170px;padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);min-width:0}
+.chain .lvl b{display:block}
+.chain .lvl span{display:block;font-size:13.5px;color:var(--muted);margin-top:3px}
+.chain .lvl .set{font:500 12px var(--font-mono);color:var(--ink);margin-top:8px}
+.chain .arrow{align-self:center;color:var(--muted);font:500 16px var(--font-mono)}
+@media (max-width:640px){.chain .arrow{display:none}}
+.meet{grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px}
+.meet .card{padding:14px}
+.meet p{font-size:14.5px;color:var(--muted);margin-top:4px}
+
+/* solo */
+.corridor{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:stretch}
+@media (max-width:820px){.corridor{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:380px){.corridor{grid-template-columns:minmax(0,1fr)}}
+.room{border-radius:12px;border:1px solid var(--line);background:var(--surface);overflow:hidden;display:flex;flex-direction:column}
+.room .art{height:86px;position:relative}
+.room .body{padding:12px 13px 14px;display:grid;gap:4px}
+.room .state{font:500 11.5px var(--font-mono);letter-spacing:.06em;text-transform:uppercase}
+.room .tag{font:500 12px var(--font-mono);color:var(--muted)}
+.room.seed{border-style:dashed}
+.room.seed .art{display:flex;align-items:center;justify-content:center;background:var(--surface-2);font-family:var(--font-display);font-size:14px;text-align:center;padding:10px;color:var(--ink)}
+.room.here{border:2px solid var(--z-solo)}
+.room.here .state{color:var(--z-solo)}
+.room.gen .state{color:var(--warn)}
+.room.kept{border-color:var(--good)}
+.room.kept .state{color:var(--good)}
+.art.a1{background:radial-gradient(circle at 30% 30%,#CDEBF2 0 18%,transparent 19%),linear-gradient(180deg,#9FD4E2,#5A9BB8 60%,#3E6F8E)}
+.art.a2{background:repeating-linear-gradient(90deg,#2A1A5E 0 14px,#3B2580 14px 28px),linear-gradient(180deg,#120B2E,#3B1670)}
+.art.a2::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);background-size:220% 100%;animation:sweep 1.8s linear infinite}
+.art.a3{background:repeating-linear-gradient(135deg,#ECEDEF 0 6px,#DADDE2 6px 7px),linear-gradient(180deg,#F2F3F5,#C9CDD4)}
+@keyframes sweep{from{background-position:120% 0}to{background-position:-120% 0}}
+.facts{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px;margin-top:14px}
+.fact{padding:14px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.fact b{display:block}
+.fact span{display:block;font-size:14px;color:var(--muted);margin-top:3px}
+ol.numbered{display:grid;gap:8px;counter-reset:n;list-style:none;max-width:72ch}
+ol.numbered li{counter-increment:n;display:grid;grid-template-columns:2em minmax(0,1fr);gap:8px}
+ol.numbered li::before{content:counter(n);font:500 13px/1.6 var(--font-mono);color:var(--accent)}
+
+/* devices */
+.dev{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(18px,3vw,32px);align-items:start}
+@media (max-width:860px){.dev{grid-template-columns:minmax(0,1fr)}}
+.cam{padding:14px}
+.cam svg{display:block;width:100%;height:auto}
+.floor{fill:var(--surface-2);stroke:var(--line);stroke-width:1.4}
+.plaza{fill:color-mix(in srgb,var(--z-plaza) 16%,var(--surface));stroke:var(--z-plaza);stroke-width:1.5}
+.scr{fill:var(--ink);opacity:.85}
+.shadow{fill:var(--ink);opacity:.15}
+.av-a{fill:var(--z-private)} .av-b{fill:var(--z-culture)} .av-c{fill:var(--z-arena)}
+.avl{fill:var(--surface);font:700 11px var(--font-mono)}
+.cap{font-size:14px;color:var(--muted);margin-top:10px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11.5px var(--font-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700;white-space:nowrap}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface)}
+.stat .num{font-family:var(--font-display);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.stat .lbl{font-size:13px;color:var(--muted)}
+.stack{display:grid;gap:8px}
+.clients{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:760px){.clients{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.client{padding:13px;border-radius:12px;border:1px solid var(--line);background:var(--surface);display:grid;gap:8px;align-content:start}
+.client.later{border-style:dashed;background:transparent}
+.client b{font-size:15px}
+.client span.d{font-size:13.5px;color:var(--muted)}
+.band{padding:13px 16px;border-radius:12px;border:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+.band b{font-size:15px}
+.band span{font-size:14px;color:var(--muted)}
+.band.swap{background:var(--surface-2)}
+.band.core{border:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+.band.server{background:var(--surface)}
+
+/* screens, safety */
+.three{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:10px}
+.three .card{padding:16px;display:grid;gap:8px;align-content:start}
+.three .card p{font-size:14.5px;color:var(--muted)}
+.net{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:0 24px;border-top:1px solid var(--line)}
+.net div{padding-block:12px;border-bottom:1px solid var(--line)}
+.net b{display:block}
+.net span{font-size:14.5px;color:var(--muted)}
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.check{padding:10px 13px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:14.5px;max-width:100%}
+.check b{margin-right:4px}
+
+/* roadmap */
+.road{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;position:relative}
+@media (max-width:900px){.road{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.road{grid-template-columns:minmax(0,1fr)}}
+.phase{padding:16px;border-radius:var(--radius);border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:10px}
+.phase .num{font:500 12px var(--font-mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.phase h3{font-family:var(--font-display);font-weight:500;font-size:17px}
+.phase ul{list-style:none;display:grid;gap:5px;font-size:14.5px}
+.phase li{padding-left:14px;position:relative}
+.phase li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:6px;border-radius:2px;background:var(--muted)}
+.gatebox{margin-top:auto;padding-top:12px;border-top:1px dashed var(--line);display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;align-items:start;font-size:14px}
+.gem{width:12px;height:12px;transform:rotate(45deg);border:1.6px solid var(--muted);background:var(--surface-2);margin-top:5px;margin-left:3px}
+.gatebox b{display:block;font:500 11px var(--font-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.phase.launch .gem{background:var(--accent);border-color:var(--accent)}
+.after{margin-top:12px;padding:13px 16px;border-radius:12px;border:1px dashed var(--line);display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:15px}
+
+
+/* launch ads */
+.scenes{grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:10px}
+.scene{padding:14px;display:grid;gap:6px;align-content:start}
+.scene .where{font:500 11.5px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.scene b{font-size:15px;line-height:1.35}
+.scene p{font-size:14px;color:var(--muted)}
+.scene .pill{justify-self:start;white-space:normal;line-height:1.3}
+.concepts{grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:12px}
+.concept{padding:18px;display:grid;gap:10px;align-content:start}
+.concept.lead{border:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--surface))}
+.concept .cnum{font:500 12px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.concept h3{font-family:var(--font-display);font-weight:500;font-size:19px}
+.concept .bs{font-size:14.5px;color:var(--muted)}
+.concept ol.numbered{font-size:14.5px}
+.endline{font-family:var(--font-display);font-size:16px;padding-top:10px;border-top:1px dashed var(--line)}
+
+/* decisions */
+.decisions{display:grid;gap:0;border-top:1px solid var(--line);max-width:860px}
+.dec{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;padding-block:13px;border-bottom:1px solid var(--line);align-items:start;cursor:pointer}
+.dec input{width:20px;height:20px;margin:2px 0 0;accent-color:var(--accent)}
+.dec b{display:block}
+.dec span{color:var(--muted);font-size:15px}
+.dec input:checked ~ div b{text-decoration:line-through;text-decoration-color:var(--muted)}
+
+footer{border-top:1px solid var(--line);padding-block:32px 48px;font-size:14px;color:var(--muted)}
+footer ul{list-style:none;display:grid;gap:6px;margin-top:10px}
+footer h3{color:var(--ink);font-size:15px}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+</style>
+
+<nav class="rail" aria-label="Plan chapters">
+  <div class="wrap">
+    <a class="brand" href="#overview">SuperWorld</a>
+    <div class="chips" id="chips">
+      <a class="chip" href="#overview">Overview</a>
+      <a class="chip" href="#loop">Loop</a>
+      <a class="chip" href="#travel">Travel</a>
+      <a class="chip" href="#engine">Engine</a>
+      <a class="chip" href="#architecture">Architecture</a>
+      <a class="chip" href="#agents">Agents &amp; SDK</a>
+      <a class="chip" href="#styles">Art styles</a>
+      <a class="chip" href="#studio">Creator studio</a>
+      <a class="chip" href="#devices">Devices</a>
+      <a class="chip" href="#screens">Screens</a>
+      <a class="chip" href="#safety">Safety &amp; cost</a>
+      <a class="chip" href="#roadmap">Roadmap</a>
+      <a class="chip" href="#decisions">Decisions</a>
+      <a class="chip" href="#ads">Launch ads</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+<!-- OVERVIEW -->
+<section class="hero" id="overview">
+  <div class="wrap hero-grid">
+    <div class="min0">
+      <p class="eyebrow">Game plan · as of 3 Oct 2026</p>
+      <h1>SuperWorld</h1>
+      <p class="lead">One shared 3D world that opens from a link on any laptop or phone. Every avatar and private space is made by talking to an AI agent, and every place can have its own art style.</p>
+      <dl class="choices">
+        <div><dt>Engine</dt><dd>Our own, built on Three.js with WebGPU and a WebGL2 fallback</dd></div>
+        <div><dt>Core rule</dt><dd>The engine owns how the world runs; players and agents define what is in it</dd></div>
+        <div><dt>Modes</dt><dd>3D or 2D camera, shared districts, private spaces, a solo creator studio</dd></div>
+        <div><dt>Platforms</dt><dd>Desktop web and mobile web now; a native app later, from the same core</dd></div>
+      </dl>
+      <div class="actions">
+        <a class="btn primary" href="#roadmap">Jump to the roadmap</a>
+        <a class="btn" href="#ads">See the launch ads</a>
+      </div>
+    </div>
+
+    <div class="min0">
+      <div class="card mapcard">
+        <svg class="map" viewBox="0 0 460 384" role="group" aria-label="World map: a central plaza with four areas around it. Select an area for details.">
+          <defs>
+            <pattern id="mapgrid" width="23" height="24" patternUnits="userSpaceOnUse"><path d="M23 0H0V24" fill="none" class="gridline"/></pattern>
+          </defs>
+          <rect x="0" y="0" width="460" height="384" rx="12" class="mapbg"/>
+          <rect x="0" y="0" width="460" height="384" rx="12" fill="url(#mapgrid)" opacity=".55"/>
+          <g class="roads">
+            <line x1="230" y1="190" x2="99" y2="72"/>
+            <line x1="230" y1="190" x2="361" y2="72"/>
+            <line x1="230" y1="190" x2="99" y2="306"/>
+            <line class="solo-road" x1="230" y1="190" x2="361" y2="306"/>
+          </g>
+
+          <g class="zone" data-zone="arena" style="--z:var(--z-arena)" tabindex="0" role="button" aria-pressed="false" aria-label="Arena district">
+            <rect class="fill" x="24" y="24" width="150" height="96" rx="12"/>
+            <text class="zlabel" x="38" y="47">Arena</text>
+            <ellipse class="glyph" cx="99" cy="86" rx="54" ry="21"/>
+            <ellipse class="fill" cx="99" cy="86" rx="34" ry="9"/>
+            <circle class="dot" cx="64" cy="73" r="4.5"/>
+            <circle class="dot" cx="140" cy="97" r="4.5"/>
+          </g>
+
+          <g class="zone" data-zone="culture" style="--z:var(--z-culture)" tabindex="0" role="button" aria-pressed="false" aria-label="Culture district: library, theatre and museum">
+            <rect class="fill" x="286" y="24" width="150" height="96" rx="12"/>
+            <text class="zlabel" x="300" y="47">Culture</text>
+            <rect class="glyph" x="300" y="64" width="34" height="40" rx="2"/>
+            <path class="gline" d="M303 77H331M303 90H331"/>
+            <rect class="glyph" x="344" y="64" width="34" height="40" rx="2"/>
+            <path class="gline" d="M351 104V83a10 10 0 0 1 20 0v21"/>
+            <path class="glyph" d="M386 74L405 61L424 74Z"/>
+            <rect class="glyph" x="388" y="74" width="34" height="30" rx="1"/>
+            <path class="gline" d="M396 78V100M405 78V100M414 78V100"/>
+          </g>
+
+          <g class="zone" data-zone="private" style="--z:var(--z-private)" tabindex="0" role="button" aria-pressed="false" aria-label="Private spaces">
+            <rect class="fill" x="24" y="258" width="150" height="96" rx="12"/>
+            <text class="zlabel" x="38" y="281">Private spaces</text>
+            <path class="glyph" d="M42 334V318L54 307L66 318V334Z"/>
+            <path class="glyph" d="M78 326V308L92 296L106 308V326Z"/>
+            <path class="glyph" d="M118 338V322L130 311L142 322V338Z"/>
+            <path class="glyph" d="M146 320V308L156 299L166 308V320Z"/>
+          </g>
+
+          <g class="zone" data-zone="solo" style="--z:var(--z-solo)" tabindex="0" role="button" aria-pressed="false" aria-label="Creator studio">
+            <rect class="fill" x="286" y="258" width="150" height="96" rx="12"/>
+            <text class="zlabel" x="300" y="281">Creator studio</text>
+            <rect class="glyph" x="302" y="300" width="26" height="20" rx="2"/>
+            <rect class="glyph" x="394" y="294" width="28" height="22" rx="2"/>
+            <circle class="dot" cx="361" cy="306" r="6"/>
+            <path class="gline" d="M361 313V333M352 322H370M361 333L354 344M361 333L368 344"/>
+            <path class="dot" d="M318 336l2 4l4 2l-4 2l-2 4l-2-4l-4-2l4-2z"/>
+            <path class="dot" d="M408 330l1.5 3l3 1.5l-3 1.5l-1.5 3l-1.5-3l-3-1.5l3-1.5z"/>
+          </g>
+
+          <g class="zone" data-zone="plaza" style="--z:var(--z-plaza)" tabindex="0" role="button" aria-pressed="true" aria-label="Plaza, the spawn hub">
+            <circle class="fill" cx="230" cy="190" r="56"/>
+            <circle class="glyph" cx="230" cy="190" r="18"/>
+            <circle class="fill" cx="230" cy="190" r="7"/>
+            <circle class="dot" cx="268" cy="190" r="4.5"/>
+            <circle class="dot" cx="249" cy="223" r="4.5"/>
+            <circle class="dot" cx="211" cy="223" r="4.5"/>
+            <circle class="dot" cx="192" cy="190" r="4.5"/>
+            <circle class="dot" cx="211" cy="157" r="4.5"/>
+            <circle class="dot" cx="249" cy="157" r="4.5"/>
+            <text class="zlabel" x="230" y="268" text-anchor="middle">Plaza</text>
+          </g>
+          <text class="maphint" x="230" y="376" text-anchor="middle">Tap an area</text>
+        </svg>
+
+        <div class="zpanel" id="zpanel" style="--z:var(--z-plaza)" aria-live="polite">
+          <div class="zp-top"><span class="swatch" aria-hidden="true"></span><h3 id="zpName">Plaza</h3><span class="pill" id="zpKind">Spawn hub</span></div>
+          <dl>
+            <dt>You</dt><dd id="zpDoes">Meet people, chat, emote, catch live events, and take portals to every area.</dd>
+            <dt>Built by</dt><dd id="zpBuilds">Your team. Agents you run add seasonal decor.</dd>
+            <dt>Room</dt><dd id="zpRoom">Shared, split into parallel copies of about 50 players when busy.</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LOOP -->
+<section id="loop">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Core loop</p>
+      <h2>Make yourself once, then play, build and share in a loop</h2>
+    </div>
+    <div class="loopwrap">
+      <div class="card" style="padding:14px">
+        <svg class="loop tall" viewBox="0 0 320 320" role="img" aria-label="Core loop: get an avatar once, then arrive, play and browse, build at home, share, and back to arrive.">
+          <defs><marker id="lb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahead" d="M0 0L10 5L0 10z"/></marker></defs>
+          <rect class="lbox entry" x="88" y="8" width="145" height="58" rx="10"/>
+          <text class="lnum" x="100" y="31">1</text><text class="lt" x="114" y="31">Get an avatar</text>
+          <text class="ls" x="100" y="52">Describe yourself</text>
+          <text class="lrep" x="241" y="42">first visit</text>
+          <rect class="lbox" x="8" y="112" width="145" height="58" rx="10"/>
+          <text class="lnum" x="20" y="135">2</text><text class="lt" x="34" y="135">Arrive</text>
+          <text class="ls" x="20" y="156">See who is around</text>
+          <rect class="lbox" x="167" y="112" width="145" height="58" rx="10"/>
+          <text class="lnum" x="179" y="135">3</text><text class="lt" x="193" y="135">Play, browse</text>
+          <text class="ls" x="179" y="156">Race, solve, explore</text>
+          <rect class="lbox" x="167" y="244" width="145" height="58" rx="10"/>
+          <text class="lnum" x="179" y="267">4</text><text class="lt" x="193" y="267">Build at home</text>
+          <text class="ls" x="179" y="288">Talk to your agent</text>
+          <rect class="lbox" x="8" y="244" width="145" height="58" rx="10"/>
+          <text class="lnum" x="20" y="267">5</text><text class="lt" x="34" y="267">Share</text>
+          <text class="ls" x="20" y="288">Invite or publish</text>
+          <path class="larrow" d="M160 66V88H80V109" marker-end="url(#lb)"/>
+          <path class="larrow" d="M153 141H164" marker-end="url(#lb)"/>
+          <path class="larrow" d="M240 170V241" marker-end="url(#lb)"/>
+          <path class="larrow" d="M167 273H156" marker-end="url(#lb)"/>
+          <path class="larrow" d="M80 244V173" marker-end="url(#lb)"/>
+          <text class="lrep" x="160" y="211" text-anchor="middle">repeat</text>
+        </svg>
+        <svg class="loop wide" viewBox="0 0 460 250" role="img" aria-label="Core loop: get an avatar once, then arrive, play and browse, build at home, share, and back to arrive.">
+          <defs><marker id="la" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahead" d="M0 0L10 5L0 10z"/></marker></defs>
+          <rect class="lbox entry" x="10" y="40" width="130" height="60" rx="10"/>
+          <text class="lnum" x="22" y="62">1</text><text class="lt" x="36" y="62">Get an avatar</text>
+          <text class="ls" x="22" y="84">Describe yourself</text>
+          <text class="lrep" x="75" y="124" text-anchor="middle">first visit only</text>
+
+          <rect class="lbox" x="165" y="40" width="130" height="60" rx="10"/>
+          <text class="lnum" x="177" y="62">2</text><text class="lt" x="191" y="62">Arrive</text>
+          <text class="ls" x="177" y="84">See who is around</text>
+
+          <rect class="lbox" x="320" y="40" width="130" height="60" rx="10"/>
+          <text class="lnum" x="332" y="62">3</text><text class="lt" x="346" y="62">Play, browse</text>
+          <text class="ls" x="332" y="84">Race, solve, explore</text>
+
+          <rect class="lbox" x="320" y="160" width="130" height="60" rx="10"/>
+          <text class="lnum" x="332" y="182">4</text><text class="lt" x="346" y="182">Build at home</text>
+          <text class="ls" x="332" y="204">Talk to your agent</text>
+
+          <rect class="lbox" x="165" y="160" width="130" height="60" rx="10"/>
+          <text class="lnum" x="177" y="182">5</text><text class="lt" x="191" y="182">Share</text>
+          <text class="ls" x="177" y="204">Invite or publish</text>
+
+          <path class="larrow" d="M140 70H162" marker-end="url(#la)"/>
+          <path class="larrow" d="M295 70H317" marker-end="url(#la)"/>
+          <path class="larrow" d="M385 100V157" marker-end="url(#la)"/>
+          <path class="larrow" d="M320 190H298" marker-end="url(#la)"/>
+          <path class="larrow" d="M230 160V103" marker-end="url(#la)"/>
+          <text class="lrep" x="307" y="134" text-anchor="middle">repeat</text>
+        </svg>
+      </div>
+      <div class="rules">
+        <div class="rule">
+          <p class="eyebrow">Design rule 1</p>
+          <p>The platform owns physics, networking and safety. Players and agents only author content and behaviour inside a sandbox.</p>
+        </div>
+        <div class="rule">
+          <p class="eyebrow">Design rule 2</p>
+          <p>Every scene is stored as data, not code. The same world renders in 3D on a laptop, in 2D on a small phone, and later in a native app.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRAVEL -->
+<section id="travel">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Getting around</p>
+      <h2>One camera, three zoom levels: walk, overview, atlas</h2>
+      <p class="lead">Nobody has to walk far. Zoom out to pick where to go, then zoom back in to arrive. The middle level plays like Dota: a small figure on a readable board, tap to move.</p>
+    </div>
+    <div class="dev">
+      <div class="card cam levels">
+        <div class="pv-bar" style="margin-bottom:10px">
+          <span class="eyebrow">Pinch out to rise</span>
+          <div class="seg" role="group" aria-label="Camera level" id="lvlSeg">
+            <button type="button" aria-pressed="false" data-lvl="walk">Walk</button>
+            <button type="button" aria-pressed="true" data-lvl="over">Overview</button>
+            <button type="button" aria-pressed="false" data-lvl="atlas">Atlas</button>
+          </div>
+        </div>
+        <svg viewBox="0 0 400 240" role="img" aria-label="The same trip at three camera levels: walk, overview and atlas">
+          <defs><marker id="ta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="you" d="M0 0L10 5L0 10z"/></marker></defs>
+          <g id="lvl-walk" hidden>
+            <rect class="silh" x="70" y="34" width="44" height="40" rx="3"/>
+            <rect class="silh" x="122" y="22" width="30" height="52" rx="3"/>
+            <rect class="silh" x="250" y="30" width="60" height="44" rx="3"/>
+            <rect class="silh" x="318" y="44" width="26" height="30" rx="3"/>
+            <polygon class="floor" points="16,236 384,236 304,74 96,74"/>
+            <ellipse class="plaza" cx="200" cy="150" rx="122" ry="40"/>
+            <rect class="other" x="126" y="112" width="8" height="18" rx="4"/><circle class="other" cx="130" cy="107" r="4"/>
+            <rect class="friend" x="262" y="118" width="9" height="20" rx="4.5"/><circle class="friend" cx="266.5" cy="112" r="4.5"/>
+            <rect class="other" x="288" y="132" width="10" height="22" rx="5"/><circle class="other" cx="293" cy="126" r="5"/>
+            <ellipse class="shadow" cx="200" cy="226" rx="26" ry="6"/>
+            <rect class="you" x="186" y="168" width="28" height="56" rx="14"/><circle class="you" cx="200" cy="154" r="13"/>
+            <circle class="mini" cx="360" cy="40" r="24"/>
+            <circle class="you" cx="360" cy="44" r="3.5"/><circle class="friend" cx="370" cy="34" r="2.5"/><circle class="other" cx="350" cy="32" r="2.5"/>
+            <text class="tlabel m" x="360" y="80" text-anchor="middle">map</text>
+          </g>
+          <g id="lvl-over">
+            <polygon class="floor" points="200,22 376,120 200,218 24,120"/>
+            <polygon class="plaza" points="200,92 252,120 200,148 148,120"/>
+            <g style="--z:var(--z-arena)"><polygon class="bl" points="96,84 116,94 116,116 96,106"/><polygon class="br" points="116,94 136,84 136,106 116,116"/><polygon class="bt" points="116,74 136,84 116,94 96,84"/></g>
+            <g style="--z:var(--z-culture)"><polygon class="bl" points="262,70 282,80 282,100 262,90"/><polygon class="br" points="282,80 302,70 302,90 282,100"/><polygon class="bt" points="282,60 302,70 282,80 262,70"/></g>
+            <g style="--z:var(--z-private)"><polygon class="bl" points="224,168 240,176 240,192 224,184"/><polygon class="br" points="240,176 256,168 256,184 240,192"/><polygon class="bt" points="240,160 256,168 240,176 224,168"/></g>
+            <circle class="other" cx="186" cy="112" r="3.5"/><circle class="other" cx="214" cy="126" r="3.5"/><circle class="other" cx="198" cy="132" r="3.5"/>
+            <circle class="friend" cx="300" cy="134" r="4"/><circle class="other" cx="92" cy="138" r="3.5"/>
+            <polyline class="path" points="150,160 228,150 290,142"/>
+            <ellipse class="you-ring" cx="296" cy="140" rx="11" ry="5.5"/>
+            <text class="tlabel" x="312" y="152">tap</text>
+            <circle class="you" cx="150" cy="160" r="6"/>
+            <text class="tlabel" x="124" y="180">you</text>
+          </g>
+          <g id="lvl-atlas" hidden>
+            <rect class="floor" x="8" y="8" width="384" height="224" rx="12"/>
+            <rect class="az" style="--z:var(--z-arena)" x="28" y="26" width="120" height="64" rx="10"/>
+            <text class="azl" x="42" y="48">Arena</text>
+            <rect class="live" x="42" y="58" width="38" height="18" rx="9"/><text class="livet" x="61" y="71" text-anchor="middle">LIVE</text>
+            <rect class="az" style="--z:var(--z-culture)" x="252" y="26" width="120" height="64" rx="10"/>
+            <text class="azl" x="266" y="48">Culture</text>
+            <rect class="az" style="--z:var(--z-private)" x="28" y="150" width="120" height="64" rx="10"/>
+            <text class="azl" x="42" y="172">Private</text>
+            <rect class="az dash" style="--z:var(--z-solo)" x="252" y="150" width="120" height="64" rx="10"/>
+            <text class="azl" x="266" y="172">Studio</text>
+            <circle class="az" style="--z:var(--z-plaza)" cx="200" cy="120" r="34"/>
+            <text class="azl" x="200" y="124" text-anchor="middle">Plaza</text>
+            <circle class="friend" cx="318" cy="66" r="5"/><circle class="you-ring" style="stroke:var(--z-culture)" cx="318" cy="66" r="9"/>
+            <circle class="friend" cx="86" cy="192" r="5"/>
+            <path class="path" d="M214 92Q236 52 300 64" marker-end="url(#ta)"/>
+            <circle class="you" cx="208" cy="102" r="5"/>
+            <text class="tlabel" x="192" y="74" text-anchor="end">travel</text>
+          </g>
+        </svg>
+        <p class="lv-cap" id="lvlCap" aria-live="polite"><b>Overview</b>The district becomes a small, readable board. Tap a spot and your avatar walks there; landmarks and friends are easy to spot.</p>
+      </div>
+      <div class="trip">
+        <div>
+          <p class="eyebrow" style="margin-bottom:10px">How a trip feels</p>
+          <ol class="numbered">
+            <li>Pinch out or press M: the camera rises from your avatar to the overview, then to the atlas.</li>
+            <li>The atlas shows friends, live events and busy spots. Tap where you want to go.</li>
+            <li>The camera dives in. The destination's 2D map tile shows first while 3D detail streams, so you never see a blank loading screen.</li>
+            <li>You land at its arrival point, a few steps from where you aimed.</li>
+          </ol>
+        </div>
+        <div class="rulelist">
+          <div><b>Fast travel is free</b>between public places; walking is for discovery, never a toll.</div>
+          <div><b>Every place has a link</b>that drops a friend straight in from any browser.</div>
+          <div><b>Join a friend</b>from their profile or the atlas; parties travel together.</div>
+          <div><b>Private spaces need a knock:</b> you land at the door until the owner lets you in.</div>
+          <div><b>Places stay worth walking:</b> hidden doors, puzzle clues and chance meetings reward anyone who wanders.</div>
+          <div><b>Safe arrival:</b> you pass through others for a moment, so nobody lands on anyone.</div>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px">Each district is its own server room, so a trip is a room switch hidden by the zoom. 2D mode is simply the overview camera kept on.</p>
+  </div>
+</section>
+
+<!-- ENGINE -->
+<section id="engine">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Engine decision</p>
+      <h2>Build our own web-native engine on Three.js</h2>
+      <p class="lead">It is the only option that runs on every phone browser today, lets you own accounts and data, and can show live HTML on in-world screens.</p>
+    </div>
+    <div class="grid engines">
+      <article class="card eng best">
+        <div class="eng-top"><h3>Our own engine on Three.js</h3><span class="pill rec">Pick</span></div>
+        <p class="what">WebGPU renderer with TSL shaders and a WebGL2 fallback, plus our own game server.</p>
+        <div class="ratings">
+          <div class="rating"><span class="k">Desktop and mobile web</span><span class="mark yes">Yes</span><span class="v">WebGPU on Chrome, Firefox and Safari 26+, iOS included</span></div>
+          <div class="rating"><span class="k">You own it</span><span class="mark yes">Yes</span><span class="v">Accounts, data and rules are yours</span></div>
+          <div class="rating"><span class="k">Video and HTML screens</span><span class="mark yes">Yes</span><span class="v">Video now; HTML pages in sandboxed frames</span></div>
+          <div class="rating"><span class="k">Speed to ship</span><span class="mark part">Slower</span><span class="v">Most work, full control</span></div>
+        </div>
+      </article>
+      <article class="card eng">
+        <div class="eng-top"><h3>Godot 4 web export</h3><span class="pill">App stores only</span></div>
+        <p class="what">Strong free engine whose web build is a secondary target.</p>
+        <div class="ratings">
+          <div class="rating"><span class="k">Desktop and mobile web</span><span class="mark part">Partly</span><span class="v">WebGL2 only; no WebGPU, no C# on the web</span></div>
+          <div class="rating"><span class="k">You own it</span><span class="mark yes">Yes</span><span class="v">MIT-licensed engine</span></div>
+          <div class="rating"><span class="k">Video and HTML screens</span><span class="mark part">Partly</span><span class="v">HTML needs JavaScript bridge overlays</span></div>
+          <div class="rating"><span class="k">Speed to ship</span><span class="mark part">Partly</span><span class="v">Mature editor, weaker web story</span></div>
+        </div>
+      </article>
+      <article class="card eng">
+        <div class="eng-top"><h3>Roblox</h3><span class="pill">Not the base</span></div>
+        <p class="what">Huge audience and its own AI creation tools, on Roblox's terms.</p>
+        <div class="ratings">
+          <div class="rating"><span class="k">Desktop and mobile web</span><span class="mark part">Planned</span><span class="v">Apps today; Chrome in-browser play due by end of 2026</span></div>
+          <div class="rating"><span class="k">You own it</span><span class="mark no">No</span><span class="v">Roblox owns accounts, economy and rules</span></div>
+          <div class="rating"><span class="k">Video and HTML screens</span><span class="mark no">No</span><span class="v">Roblox-hosted media only</span></div>
+          <div class="rating"><span class="k">Speed to ship</span><span class="mark yes">Fast</span><span class="v">Fastest way to ship one game</span></div>
+        </div>
+      </article>
+    </div>
+    <p class="note" style="margin-top:16px">A sensible hedge: later, publish one mini-game such as the racing track on Roblox as a marketing channel.</p>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Architecture</p>
+      <h2>The engine owns how the world runs; players and agents define what is in it</h2>
+      <p class="lead">One boundary keeps the world fast on phones, fair in races, and safe when strangers visit each other's spaces.</p>
+    </div>
+    <div class="layers">
+      <div class="layer">
+        <div class="layer-h"><h3>Players and their AI agent</h3><span class="pill">talks, approves</span></div>
+        <div class="tiles">
+          <div class="tile"><b>Player</b><span>Describes, approves, undoes</span></div>
+          <div class="tile"><b>Building agent</b><span>Claude or another model: plans, then calls your tools</span></div>
+          <div class="tile"><b>Generators</b><span>Images, 3D meshes, rigging</span></div>
+        </div>
+      </div>
+      <div class="flow" aria-hidden="true"><svg width="14" height="26" viewBox="0 0 14 26"><path d="M7 1V23M2 18L7 24L12 18"/></svg>tool calls only</div>
+      <div class="layer data">
+        <div class="layer-h"><h3>What players and agents define, stored as data</h3><span class="pill">editable</span></div>
+        <div class="tiles">
+          <div class="tile"><b>Avatar</b><span>Look, art style, animations</span></div>
+          <div class="tile"><b>Items</b><span>Model plus behaviour settings</span></div>
+          <div class="tile"><b>Private spaces</b><span>Layout, style, lighting</span></div>
+          <div class="tile"><b>Tracks and puzzles</b><span>Built from your game modes</span></div>
+          <div class="tile"><b>Screen content</b><span>Video links and HTML pages</span></div>
+          <div class="tile"><b>Shaders and scripts</b><span>Sandboxed, budget-limited</span></div>
+        </div>
+      </div>
+      <div class="flow" aria-hidden="true"><svg width="14" height="26" viewBox="0 0 14 26"><path d="M7 1V23M2 18L7 24L12 18"/></svg>checked and moderated</div>
+      <div class="layer engine">
+        <div class="layer-h"><h3>Platform engine, owned and run by your team</h3><span class="pill rec">yours</span></div>
+        <div class="tiles">
+          <div class="tile"><b>3D and 2D renderers</b><span>Three.js, WebGPU or WebGL2</span></div>
+          <div class="tile"><b>Physics and movement</b><span>Avatars, vehicles, collisions</span></div>
+          <div class="tile"><b>Multiplayer</b><span>Rooms, shards, voice</span></div>
+          <div class="tile"><b>Behaviours and game modes</b><span>Wear, hold, drive, race, play</span></div>
+          <div class="tile"><b>Creator SDK and sandbox</b><span>Validates every agent edit</span></div>
+          <div class="tile"><b>Accounts and safety</b><span>Storage, moderation, reports</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="thumb"><b>Rule of thumb:</b> if a feature changes how the world runs, it belongs in the engine. If it changes what is in the world, players and agents define it. A new item, track or room never needs an engine release.</p>
+
+    <div class="sub"><h3>Inside our engine</h3><span class="note">Part by part, following the two design rules and the web-first goal.</span></div>
+    <div class="lessons" id="lessons">
+      <div class="lesson" aria-hidden="true"><span class="lesson-head">Part</span><span class="lesson-head">How our engine does it</span></div>
+      <div class="lesson"><span class="part">World loop</span><span class="ours">One shared TypeScript core with no browser APIs. It runs on the server, in the browser, and later in a native app.</span></div>
+      <div class="lesson"><span class="part">Data</span><span class="ours">Templates (model, behaviour, settings) and placed instances, plus style profiles and one scene file per space.</span></div>
+      <div class="lesson"><span class="part">Network</span><span class="ours">Rooms, shards and nearby-only updates, so a busy plaza does not flood every phone.</span></div>
+      <div class="lesson"><span class="part">Physics</span><span class="ours">A WebAssembly physics engine.</span></div>
+      <div class="lesson"><span class="part">Rendering</span><span class="ours">WebGPU renderer with TSL shaders, WebGL2 fallback, three quality tiers.</span></div>
+      <div class="lesson"><span class="part">Scripts</span><span class="ours">Node graphs and SDK calls; small scripts run in a worker with a CPU budget and no network.</span></div>
+      <div class="lesson"><span class="part">AI building</span><span class="ours">The agent calls typed SDK tools; no raw code reaches other players.</span></div>
+      <div class="lesson"><span class="part">Avatars</span><span class="ours">VRM, an open avatar standard.</span></div>
+      <div class="lesson"><span class="part">Screens</span><span class="ours">Streamed video with spatial audio, plus real HTML pages in sandboxed frames.</span></div>
+      <div class="lesson"><span class="part">Voice</span><span class="ours">LiveKit proximity voice.</span></div>
+      <div class="lesson"><span class="part">Touch</span><span class="ours">Virtual stick, tap-to-move and one large context button.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- AGENTS & SDK -->
+<section id="agents">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Agents and Creator SDK</p>
+      <h2>The agent plans and talks; specialist models make meshes; your SDK checks everything</h2>
+      <p class="lead">One LLM agent drives creation through a typed SDK, published as an MCP server so any model can use it. It never writes raw code that runs on other players' devices.</p>
+    </div>
+
+    <div class="sub"><h3>Avatar pipeline</h3><span class="note">Owned end to end. Ready Player Me, once the default service, shut down on 31 Jan 2026.</span></div>
+    <ol class="steps">
+      <li class="step"><span class="n">Step 1</span><h3>Describe</h3><p>Type or say how you want to look, or upload a picture.</p></li>
+      <li class="step"><span class="n">Step 2</span><h3>Concept</h3><p>The agent writes a character brief and shows a concept image to approve.</p></li>
+      <li class="step"><span class="n">Step 3</span><h3>Mesh</h3><p>Image-to-3D builds the body; humanoids are auto-rigged and animated.</p></li>
+      <li class="step"><span class="n">Step 4</span><h3>Fit</h3><p>Retarget to one skeleton, shrink for phones, save as VRM 1.0 in your storage.</p></li>
+      <li class="step gate"><span class="n">Gate</span><h3>Check</h3><p>Moderation checks mesh and textures before public zones.</p></li>
+    </ol>
+
+    <div class="grid facts">
+      <div class="fact"><b>Building agent</b><span>Edits your space through the SDK: place objects, generate assets, add behaviours, screens, lighting, music and who may visit. You see a live preview and accept or undo each step.</span></div>
+      <div class="fact"><b>AI characters</b><span>The same agents run hosts and guides: a museum curator, a race marshal, a librarian. They run on your servers, so you control their cost and behaviour.</span></div>
+      <div class="fact"><b>Items</b><span>A 3D model plus settings for one engine behaviour: wear, hold, sit, throw, drive, play or open a screen. A new item never needs new code.</span></div>
+    </div>
+
+    <div class="sub"><h3>Creator SDK</h3><span class="note">The agent chooses the look; the engine decides what each device can afford.</span></div>
+    <div class="sdk-wrap">
+      <div class="grid mods">
+        <div class="card mod"><span class="name">sdk.scene</span><dl><dt>Agent decides</dt><dd>Place, move and group objects; spawn points and portals</dd><dt>Engine enforces</dt><dd>Object and triangle budget per space</dd></dl></div>
+        <div class="card mod"><span class="name">sdk.style</span><dl><dt>Agent decides</dt><dd>Any style topic for a world, space, item or avatar</dd><dt>Engine enforces</dt><dd>Unset topics inherit; post-effects drop on weak phones</dd></dl></div>
+        <div class="card mod"><span class="name">sdk.lighting</span><dl><dt>Agent decides</dt><dd>A light rig preset or custom lights, time of day</dd><dt>Engine enforces</dt><dd>Light count per quality tier; shadows on high tier only</dd></dl></div>
+        <div class="card mod"><span class="name">sdk.materials</span><dl><dt>Agent decides</dt><dd>Pick from the library (PBR, toon, glass, water, emissive, hologram) and tune values</dd><dt>Engine enforces</dt><dd>Values clamped to safe ranges</dd></dl></div>
+        <div class="card mod"><span class="name">sdk.shaders</span><dl><dt>Agent decides</dt><dd>A node graph built from approved nodes</dd><dt>Engine enforces</dt><dd>Cost budget, flashing limit, required fallback</dd></dl></div>
+        <div class="card mod"><span class="name">sdk.behaviours</span><dl><dt>Agent decides</dt><dd>Item behaviours and small sandboxed scripts</dd><dt>Engine enforces</dt><dd>CPU budget, no network</dd></dl></div>
+        <div class="card mod"><span class="name">sdk.media</span><dl><dt>Agent decides</dt><dd>Screens, music, video</dd><dt>Engine enforces</dt><dd>Sandboxed pages, moderation</dd></dl></div>
+      </div>
+      <div class="card shader">
+        <p class="eyebrow" style="margin-bottom:8px">Library first, custom shader second</p>
+        <svg viewBox="0 0 360 556" role="img" aria-label="Shader flow: if the library has a fit, use it. Otherwise the agent writes a node graph, it compiles to TSL, a cost check on a low-end phone either sends it back to simplify or passes it on to bake a fallback and join the shared library.">
+          <defs>
+            <marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahead" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="sn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahead-no" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+          <rect class="sb" x="20" y="16" width="190" height="44" rx="10"/>
+          <text class="st" x="115" y="43" text-anchor="middle">Agent needs a material</text>
+          <path class="sl" d="M115 60V74" marker-end="url(#sa)"/>
+          <polygon class="sd" points="20,116 115,76 210,116 115,156"/>
+          <text class="st" x="115" y="120" text-anchor="middle">Library has a fit?</text>
+          <path class="sl" d="M210 116H237" marker-end="url(#sa)"/>
+          <text class="se" x="222" y="108" text-anchor="middle">yes</text>
+          <rect class="sb use" x="240" y="94" width="110" height="44" rx="10"/>
+          <text class="st" x="295" y="113" text-anchor="middle">Use it</text>
+          <text class="ss" x="295" y="129" text-anchor="middle">tune its values</text>
+          <path class="sl" d="M115 156V173" marker-end="url(#sa)"/>
+          <text class="se" x="124" y="169">no</text>
+          <rect class="sb" x="20" y="176" width="190" height="52" rx="10"/>
+          <text class="st" x="115" y="198" text-anchor="middle">Write a node graph</text>
+          <text class="ss" x="115" y="216" text-anchor="middle">JSON, approved nodes only</text>
+          <path class="sl" d="M115 228V245" marker-end="url(#sa)"/>
+          <rect class="sb" x="20" y="248" width="190" height="52" rx="10"/>
+          <text class="st" x="115" y="270" text-anchor="middle">Compile to TSL</text>
+          <text class="ss" x="115" y="288" text-anchor="middle">becomes WGSL or GLSL</text>
+          <path class="sl" d="M115 300V317" marker-end="url(#sa)"/>
+          <polygon class="sd" points="20,362 115,320 210,362 115,404"/>
+          <text class="st" x="115" y="358" text-anchor="middle">Fits a low-end</text>
+          <text class="st" x="115" y="374" text-anchor="middle">phone budget?</text>
+          <path class="sl no" d="M210 362H330V202H213" marker-end="url(#sn)"/>
+          <text class="se" x="322" y="292" text-anchor="end">no: simplify</text>
+          <path class="sl" d="M115 404V421" marker-end="url(#sa)"/>
+          <text class="se" x="124" y="417">yes</text>
+          <rect class="sb" x="20" y="424" width="190" height="52" rx="10"/>
+          <text class="st" x="115" y="446" text-anchor="middle">Bake a fallback</text>
+          <text class="ss" x="115" y="464" text-anchor="middle">for weak phones and 2D</text>
+          <path class="sl" d="M115 476V493" marker-end="url(#sa)"/>
+          <rect class="sb final" x="20" y="496" width="190" height="44" rx="10"/>
+          <text class="st" x="115" y="523" text-anchor="middle">Add to shared library</text>
+        </svg>
+        <p class="cap">One TSL source runs on both WebGPU and WebGL2. Compute-only nodes stay off the list because the WebGL2 fallback cannot run them.</p>
+      </div>
+    </div>
+    <div class="sub"><h3>One schema, three doors</h3><span class="note">Generate all three from the same tool definitions so they never drift apart.</span></div>
+    <div class="grid three">
+      <div class="card"><div class="eng-top"><h3>API</h3><span class="pill now">Build first</span></div><p>The source of truth. The game and your in-game agent use it, the agent through Claude's tool use.</p></div>
+      <div class="card"><div class="eng-top"><h3>MCP server</h3><span class="pill now">Second</span></div><p>For outside agents: players' own AI, Claude apps and other models can build without custom code.</p></div>
+      <div class="card"><div class="eng-top"><h3>CLI</h3><span class="pill later">Third</span></div><p>For power creators, coding agents, scripts and CI: bulk imports, batch edits, automated tests.</p></div>
+    </div>
+    <div class="sub"><h3>Why VRM for avatars</h3></div>
+    <p class="note">VRM 1.0 is glTF plus a standard humanoid skeleton, facial expressions and lip-sync, eye gaze, spring bones for hair and clothes, and licence metadata saying who may use the avatar. Cap spring bones in crowds, let the style system override VRM's anime-leaning toon shader, and convert plain rigged GLB uploads to VRM in the pipeline.</p>
+  </div>
+</section>
+
+<!-- ART STYLES -->
+<section id="styles">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Art styles</p>
+      <h2>Every place and avatar can have its own style, picked from the same topics</h2>
+      <p class="lead">The SDK describes a style as a set of topics. An agent fills in some or all of them; anything left empty inherits from the level above. Try it.</p>
+    </div>
+    <div class="mixer">
+      <div class="topics" id="topics"></div>
+      <div class="preview">
+        <div class="canvasbox"><canvas id="stage" width="480" height="300" aria-label="Preview of the chosen style"></canvas></div>
+        <div class="pv-bar">
+          <span class="note" id="pickedBy">Style profile for one space</span>
+          <button class="btn" type="button" id="agentPick">Let the agent pick</button>
+        </div>
+        <pre class="profile" id="profile" aria-label="Style profile as stored data"></pre>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px">Motion, sound and 2D look are topics too; the preview leaves them to inherit.</p>
+
+    <div class="sub"><h3>How styles nest</h3><span class="note">Example values</span></div>
+    <div class="chain">
+      <div class="lvl"><b>World default</b><span>Sets every topic, so nothing is ever blank</span><div class="set">form: smooth · light: noon</div></div>
+      <span class="arrow" aria-hidden="true">→</span>
+      <div class="lvl"><b>District</b><span>Culture district sets gallery lighting</span><div class="set">light: overcast</div></div>
+      <span class="arrow" aria-hidden="true">→</span>
+      <div class="lvl"><b>Space</b><span>A player's studio goes voxel</span><div class="set">form: voxel · colour: candy</div></div>
+      <span class="arrow" aria-hidden="true">→</span>
+      <div class="lvl"><b>Object</b><span>One neon sign glows</span><div class="set">surface: emissive</div></div>
+    </div>
+
+    <div class="sub"><h3>When styles meet</h3></div>
+    <div class="grid meet">
+      <div class="card"><b>The place sets the light</b><p>Lighting, sky and post-effects belong to the place, so a visiting avatar is lit and colour-graded by it. That alone blends most mixes.</p></div>
+      <div class="card"><b>The owner chooses</b><p>A space keeps visitor styles by default, like the OASIS, or harmonises them with its own outlines and colour treatment.</p></div>
+      <div class="card"><b>Portals mark the change</b><p>Moving between differently styled zones plays a short transition, so the change feels deliberate.</p></div>
+      <div class="card"><b>Crowds stay light</b><p>Busy public zones use library materials. Full custom avatar shaders show in private spaces and up close.</p></div>
+    </div>
+    <p class="note" style="margin-top:14px">At launch, players can describe a style any way they like. Style rules are revisited together with the copyright filters.</p>
+  </div>
+</section>
+
+<!-- STUDIO -->
+<section id="studio">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Creator studio</p>
+      <h2>Make things alone with your agent, and walk through every draft</h2>
+      <p class="lead">The studio keeps the feeling of exploring the LLM's art, but every draft has a purpose: keep it, change it or throw it away.</p>
+    </div>
+    <div class="corridor">
+      <div class="room seed"><div class="art">“a library under the sea”</div><div class="body"><span class="state muted">Idea</span><span>A mood, a word, a picture, or “surprise me”</span></div></div>
+      <div class="room here"><div class="art a1"></div><div class="body"><span class="state">Draft 1 · you are here</span><span class="tag">watercolour · mist</span></div></div>
+      <div class="room gen"><div class="art a2"></div><div class="body"><span class="state">Draft 2 · generating</span><span class="tag">voxel · neon night</span></div></div>
+      <div class="room kept"><div class="art a3"></div><div class="body"><span class="state">Kept</span><span>Placed in your space, saved to your library, or sent to the museum</span></div></div>
+    </div>
+    <div class="sub"><h3>How a studio session runs</h3></div>
+    <ol class="numbered">
+      <li>Start from an idea: a mood, a word, a picture, or “surprise me”.</li>
+      <li>The agent proposes a few drafts (a room, an item, an avatar), each with its own style profile.</li>
+      <li>You walk into each draft; the next one is generated in the background while you look.</li>
+      <li>You steer by talking: “more like this”, “calmer”, “warmer light”. The agent edits through the Creator SDK.</li>
+      <li>Keep what works: place it in your private space, save it to your library, or submit it to a district or the museum.</li>
+    </ol>
+    <div class="grid facts">
+      <div class="fact"><b>No game server</b><span>The browser plus the generation backend</span></div>
+      <div class="fact"><b>Review on publish</b><span>Safety checks run on every draft; the review queue only when you share</span></div>
+      <div class="fact"><b>Session budget</b><span>Drafts lean on shaders, procedural shapes and the library; new meshes sparingly</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- DEVICES -->
+<section id="devices">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Devices</p>
+      <h2>Web and mobile web first; 2D is a second camera, native is a later shell</h2>
+    </div>
+    <div class="dev">
+      <div class="card cam">
+        <div class="pv-bar" style="margin-bottom:10px">
+          <span class="eyebrow">Same plaza, two cameras</span>
+          <div class="seg" role="group" aria-label="Camera mode" id="camSeg">
+            <button type="button" aria-pressed="true" data-cam="3d">3D</button>
+            <button type="button" aria-pressed="false" data-cam="2d">2D</button>
+          </div>
+        </div>
+        <svg viewBox="0 0 400 230" role="img" aria-label="The same plaza and three players shown in 3D and in a top-down 2D view">
+          <g id="cam3d">
+            <polygon class="floor" points="30,216 370,216 300,66 100,66"/>
+            <ellipse class="plaza" cx="200" cy="150" rx="118" ry="42"/>
+            <rect class="scr" x="168" y="22" width="64" height="38" rx="3"/>
+            <ellipse class="shadow" cx="250" cy="134" rx="8" ry="2.5"/>
+            <rect class="av-b" x="245" y="111" width="10" height="22" rx="5"/><circle class="av-b" cx="250" cy="105" r="5"/>
+            <ellipse class="shadow" cx="150" cy="172" rx="10" ry="3"/>
+            <rect class="av-a" x="144" y="141" width="12" height="30" rx="6"/><circle class="av-a" cx="150" cy="134" r="6.5"/>
+            <ellipse class="shadow" cx="205" cy="200" rx="12" ry="3.5"/>
+            <rect class="av-c" x="198" y="163" width="14" height="36" rx="7"/><circle class="av-c" cx="205" cy="155" r="7.5"/>
+          </g>
+          <g id="cam2d" hidden>
+            <rect class="floor" x="30" y="14" width="340" height="206" rx="12"/>
+            <circle class="plaza" cx="200" cy="122" r="86"/>
+            <rect class="scr" x="168" y="20" width="64" height="9" rx="2"/>
+            <circle class="av-b" cx="250" cy="82" r="11"/><text class="avl" x="250" y="86" text-anchor="middle">B</text>
+            <circle class="av-a" cx="150" cy="150" r="11"/><text class="avl" x="150" y="154" text-anchor="middle">A</text>
+            <circle class="av-c" cx="205" cy="186" r="11"/><text class="avl" x="205" y="190" text-anchor="middle">C</text>
+          </g>
+        </svg>
+        <p class="cap">The server only knows ground positions and height, so 2D and 3D players stand in the same plaza and see each other. 2D sprites are rendered from each 3D model on upload.</p>
+      </div>
+      <div class="min0">
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Action</th><th>Desktop</th><th>Mobile</th></tr></thead>
+            <tbody>
+              <tr><td>Move</td><td>WASD or click-to-move</td><td>Virtual stick or tap-to-move</td></tr>
+              <tr><td>Look</td><td>Mouse drag</td><td>One-finger drag</td></tr>
+              <tr><td>Interact</td><td>E key or click</td><td>Large context button</td></tr>
+              <tr><td>Chat</td><td>Keyboard</td><td>Voice-to-text, quick phrases</td></tr>
+              <tr><td>Build</td><td>Agent chat plus drag handles</td><td>Agent chat first, simple drag</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="num">30 fps</div><div class="lbl">mid-range phone, 3D</div></div>
+          <div class="stat"><div class="num">60 fps</div><div class="lbl">desktop</div></div>
+          <div class="stat"><div class="num">15k</div><div class="lbl">triangles per avatar, about</div></div>
+          <div class="stat"><div class="num">1024 px</div><div class="lbl">largest texture</div></div>
+        </div>
+        <p class="note" style="margin-top:8px">Starting targets, to tune in testing. Three quality tiers are picked automatically at load.</p>
+      </div>
+    </div>
+
+    <div class="sub"><h3>Web first, native later</h3><span class="note">Nothing native is built now. These layers keep the door open.</span></div>
+    <div class="stack">
+      <div class="clients">
+        <div class="client"><b>Desktop web</b><span class="pill now">Now</span><span class="d">The main product</span></div>
+        <div class="client"><b>Mobile web</b><span class="pill now">Now</span><span class="d">Installable as a home-screen web app</span></div>
+        <div class="client later"><b>Native shell</b><span class="pill later">Later</span><span class="d">Same web code in a shell such as Capacitor: store listing, push alerts</span></div>
+        <div class="client later"><b>Native client</b><span class="pill maybe">If needed</span><span class="d">New renderer, same protocol; only if phones cannot hit targets</span></div>
+      </div>
+      <div class="band swap"><b>Swappable layers</b><span>Renderer · input · audio, behind small interfaces</span></div>
+      <div class="band core"><b>Shared core in TypeScript, no browser APIs</b><span>Simulation · networking · scene and style formats · Creator SDK</span></div>
+      <div class="band server"><b>Game server</b><span>Runs the same core; versioned, documented protocol; glTF, VRM, KTX2 and JSON files</span></div>
+    </div>
+    <p class="note" style="margin-top:14px">One account works the same on web and in a later app: sign-in, inventory and private spaces. App stores add their own rules on user-generated content and downloaded code; the data-not-code SDK should make those easier to meet, but check them before the native phase.</p>
+  </div>
+</section>
+
+<!-- SCREENS & MULTIPLAYER -->
+<section id="screens">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Multiplayer and screens</p>
+      <h2>Server-authoritative rooms, and screens that play video and real web pages</h2>
+    </div>
+    <div class="net">
+      <div><b>Hangout zones</b><span>Each phone predicts its own movement; the server sends only nearby players, a few times a second.</span></div>
+      <div><b>Races and puzzles</b><span>The server decides finish times and solutions, so leaderboards cannot be faked.</span></div>
+      <div><b>Storage</b><span>A database for accounts, inventories and scene files; a CDN for models, sprites and video.</span></div>
+      <div><b>Voice</b><span>Proximity voice through LiveKit, muted by default for new and young accounts.</span></div>
+      <div><b>Stack</b><span>Colyseus rooms for world state; our own social service, or Nakama, for friends and chat. Photon is skipped: its browser SDK is a client-authoritative relay.</span></div>
+    </div>
+    <div class="sub"><h3>Three kinds of screen content</h3></div>
+    <div class="grid three">
+      <div class="card"><div class="eng-top"><h3>Video</h3><span class="pill now">Now</span></div><p>Drawn onto the screen surface. Theatre screenings follow the server clock, so everyone sees the same frame.</p></div>
+      <div class="card"><div class="eng-top"><h3>HTML page</h3><span class="pill now">Now</span></div><p>A sandboxed frame on a separate domain, laid over the screen when you walk up. Distant screens show a still snapshot.</p></div>
+      <div class="card"><div class="eng-top"><h3>HTML in the world</h3><span class="pill later">Later</span></div><p>Swap the overlay for the HTML-in-Canvas API once it leaves Chrome's origin trial (versions 148 to 150) and other browsers adopt it.</p></div>
+    </div>
+    <p class="note" style="margin-top:14px">On phones, tapping any screen opens it full-size as a flat panel. User-made pages never share cookies or account access with the game.</p>
+  </div>
+</section>
+
+<!-- SAFETY & COST -->
+<section id="safety">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Safety and cost</p>
+      <h2>Everything generated is checked before anyone else sees it</h2>
+    </div>
+    <div class="checks">
+      <span class="check"><b>Prompts and outputs</b>screened: text, images, textures</span>
+      <span class="check"><b>Copyright</b>open at launch; takedown process from day one, filters later</span>
+      <span class="check"><b>Players</b>report, block and mute everywhere</span>
+      <span class="check"><b>Age</b>if teens join: age checks, limited voice and messages</span>
+      <span class="check"><b>Publishing</b>automated review, humans for flagged items</span>
+      <span class="check"><b>Shaders</b>flashing cap and a switch to turn custom ones off</span>
+    </div>
+    <div class="sub"><h3>Where the money goes</h3></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Cost driver</th><th>Grows with</th><th>Main lever</th></tr></thead>
+        <tbody>
+          <tr><td>Agent conversations</td><td>Building sessions, AI host chats</td><td>Smaller model for routine edits; larger only for planning</td></tr>
+          <tr><td>3D and image generation</td><td>New avatars, assets, studio drafts</td><td>Daily free quota; reuse the shared library before generating</td></tr>
+          <tr><td>Bandwidth</td><td>Players, asset size, video</td><td>Compressed assets on a CDN; streamed video</td></tr>
+          <tr><td>Game servers</td><td>Concurrent players</td><td>Shards sleep when empty; private spaces wake on visit</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Roadmap</p>
+      <h2>Each phase ships something playable before the next begins</h2>
+      <p class="lead">Move on only when the gate is passed. Phase 1 is deliberately plain: if walking around a plaza with friends is not fun on a phone, nothing on top will be.</p>
+    </div>
+    <div class="road">
+      <article class="phase"><span class="num">Phase 1</span><h3>Walkable world</h3>
+        <ul><li>Shared plaza</li><li>Walk, chat, emote</li><li>Touch and mouse input</li><li>Overview camera, tap to move</li></ul>
+        <div class="gatebox"><span class="gem" aria-hidden="true"></span><div><b>Gate</b>Friends meet on phone and laptop</div></div></article>
+      <article class="phase"><span class="num">Phase 2</span><h3>AI creation</h3>
+        <ul><li>AI avatar pipeline</li><li>Creator SDK and agent</li><li>Creator studio</li><li>Private spaces, items</li><li>Material library</li></ul>
+        <div class="gatebox"><span class="gem" aria-hidden="true"></span><div><b>Gate</b>A new player builds a room without help</div></div></article>
+      <article class="phase"><span class="num">Phase 3</span><h3>Districts</h3>
+        <ul><li>Racing and puzzles</li><li>Library and theatre</li><li>Museum of AI works</li><li>Video and HTML screens</li><li>Atlas and fast travel</li><li>Custom shaders</li></ul>
+        <div class="gatebox"><span class="gem" aria-hidden="true"></span><div><b>Gate</b>Moderation live for public publishing</div></div></article>
+      <article class="phase launch"><span class="num">Phase 4</span><h3>Public beta</h3>
+        <ul><li>Sharding and voice</li><li>Reports and blocking</li><li>Generation quotas</li><li>Copyright filters</li><li>Cost dashboards</li></ul>
+        <div class="gatebox"><span class="gem" aria-hidden="true"></span><div><b>Launch gate</b>Cost per player within budget</div></div></article>
+    </div>
+    <div class="after"><span class="pill later">After beta</span>Native app shell, built on the same core and protocol.</div>
+  </div>
+</section>
+
+<!-- DECISIONS -->
+<section id="decisions">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Open decisions</p>
+      <h2>Seven calls only you can make</h2>
+      <p class="note">Ticks are saved in this browser only.</p>
+    </div>
+    <div class="decisions" id="decList">
+      <label class="dec"><input type="checkbox" id="d-age"><div><b>Audience age</b><span>18+ only, or teens too? This sets moderation, voice and private-space rules.</span></div></label>
+      <label class="dec"><input type="checkbox" id="d-native"><div><b>Native app timing</b><span>What should trigger it: app-store reach, push notifications, or phone performance limits?</span></div></label>
+      <label class="dec"><input type="checkbox" id="d-style"><div><b>Default style</b><span>Which style do avatars and spaces get when they don't choose one?</span></div></label>
+      <label class="dec"><input type="checkbox" id="d-3d"><div><b>3D generation</b><span>Hosted APIs such as Meshy or Tripo, or self-hosted Hunyuan3D for lower unit cost?</span></div></label>
+      <label class="dec"><input type="checkbox" id="d-biz"><div><b>Business model</b><span>Free with paid generation credits, a subscription, or a creator marketplace?</span></div></label>
+      <label class="dec"><input type="checkbox" id="d-team"><div><b>Team and timeline</b><span>How many people, and when is the first public playtest?</span></div></label>
+      <label class="dec"><input type="checkbox" id="d-sdk"><div><b>SDK openness</b><span>Only your own agent at launch, or let players connect their own AI through the MCP server?</span></div></label>
+    </div>
+  </div>
+</section>
+
+<!-- LAUNCH ADS -->
+<section id="ads">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Launch ads</p>
+      <h2>Borrow Ready Player One's feelings, never its names or worlds</h2>
+      <p class="lead">Its best scenes each show one feeling in one image: becoming someone new, a world that answers back, a secret only you found. The 2011 novel was a New York Times bestseller and the 2018 film grossed about $608 million worldwide.</p>
+    </div>
+
+    <div class="sub"><h3>Ten moments that made it stick</h3><span class="note">Each maps to something we actually build.</span></div>
+    <div class="grid scenes">
+      <div class="card scene"><span class="where">Film trailer and opening</span><b>Grey real life, then a world where people stay for who they can be</b><p>Transformation in one cut.</p><span class="pill">Sells: AI avatar from one sentence</span></div>
+      <div class="card scene"><span class="where">Film, first key</span><b>The unbeatable race, won by driving backward</b><p>Spectacle, then a clever secret.</p><span class="pill">Sells: races with hidden solutions</span></div>
+      <div class="card scene"><span class="where">Film</span><b>Halliday's Journals: a creator's memories as 3D scenes behind glass, rewindable, with a Curator</b><p>A museum that answers questions.</p><span class="pill">Sells: museum with an AI curator</span></div>
+      <div class="card scene"><span class="where">Film, second key</span><b>Stepping inside a famous film that turns into a puzzle</b><p>Walking into a story you know.</p><span class="pill">Sells: say an idea, walk into it</span></div>
+      <div class="card scene"><span class="where">Film</span><b>A zero-gravity dance club where the leads connect</b><p>Romance and belonging.</p><span class="pill">Sells: plaza club nights</span></div>
+      <div class="card scene"><span class="where">Film, Aech's garage</span><b>A workshop full of half-built vehicles and a giant robot</b><p>Making things with friends.</p><span class="pill">Sells: private spaces and the studio</span></div>
+      <div class="card scene"><span class="where">Film, final battle</span><b>Everyone shows up</b><p>Community at its peak.</p><span class="pill">Sells: live world events</span></div>
+      <div class="card scene"><span class="where">Novel</span><b>A will video launches a hunt; duels, film reenactments and a perfect arcade game earn keys</b><p>Knowledge and skill rewarded.</p><span class="pill">Sells: puzzle quests, the launch hunt</span></div>
+      <div class="card scene"><span class="where">2012 book promotion</span><b>A real Easter egg hidden in the paperback, won with a DeLorean</b><p>Fiction leaks into real life.</p><span class="pill">Sells: the launch hunt below</span></div>
+      <div class="card scene"><span class="where">SXSW 2018</span><b>A walk from a bedroom down a neon hall onto a dance floor, eight VR experiences, trivia leaderboards on bracelets</b><p>You step through a door into the world.</p><span class="pill">Sells: a pop-up where a QR code drops you in</span></div>
+    </div>
+    <p class="note" style="margin-top:12px">The film swapped several of the book's challenges because a long arcade game would stall a movie and some film rights were unavailable. Ads face the same rule: pick the moment that reads in one shot.</p>
+
+    <div class="sub"><h3>Five ad concepts</h3><span class="note">20 to 30 second films shot on real gameplay. Lead with concept 2.</span></div>
+    <div class="grid concepts">
+      <article class="card concept"><span class="cnum">Concept 1</span><h3>Who will you be?</h3><p class="bs"><b>Borrows</b> the opening transformation. <b>Sells</b> an avatar from one sentence, straight from a link.</p>
+        <ol class="numbered"><li>A tired commuter on a rainy Tokyo train scrolls her phone.</li><li>She taps a link and types “a fox knight made of autumn leaves”.</li><li>Leaves swirl into her avatar; she steps into a sunny plaza full of people in different art styles.</li><li>Back on the train, her reflection in the window is the fox knight. She smiles.</li></ol>
+        <p class="endline">Describe yourself. Step in.</p></article>
+      <article class="card concept lead"><span class="cnum">Concept 2 · lead with this</span><h3>Say it, walk into it</h3><p class="bs"><b>Borrows</b> stepping inside a story. <b>Sells</b> the creator studio.</p>
+        <ol class="numbered"><li>A girl on the sofa says to her phone, “a library under the sea”.</li><li>Cut: she is standing inside it. Fish drift between the shelves; a whale glides past the reading lamps.</li><li>“Warmer light,” she says. The water turns gold.</li><li>She sends a link, and her grandfather appears beside her from a tablet in another city.</li></ol>
+        <p class="endline">If you can say it, you can walk into it.</p></article>
+      <article class="card concept"><span class="cnum">Concept 3</span><h3>Turn around</h3><p class="bs"><b>Borrows</b> the race won by going backward. <b>Sells</b> races and puzzles with secrets.</p>
+        <ol class="numbered"><li>A roaring race through a city that rebuilds itself around the cars.</li><li>Every racer hits the same wall and respawns.</li><li>One player stops, spots a tiny clue on a billboard, and turns around.</li><li>The leaderboard shows one name.</li></ol>
+        <p class="endline">Every track hides a secret.</p></article>
+      <article class="card concept"><span class="cnum">Concept 4</span><h3>Ask the museum</h3><p class="bs"><b>Borrows</b> Halliday's Journals. <b>Sells</b> the museum and its AI curator.</p>
+        <ol class="numbered"><li>A hall of glowing windows, each holding a scene a player made.</li><li>A visitor asks the curator, “Who made this, and why?”</li><li>The scene rewinds to show its making, from the first sentence to the finished room.</li><li>The visitor opens the studio to make one of their own.</li></ol>
+        <p class="endline">Every exhibit has a story. Ask it.</p></article>
+      <article class="card concept"><span class="cnum">Concept 5</span><h3>Everyone shows up</h3><p class="bs"><b>Borrows</b> the final gathering. <b>Sells</b> live events and a world of mixed styles.</p>
+        <ol class="numbered"><li>A countdown on the plaza screens. Players arrive from phones on buses and laptops in cafes.</li><li>Thousands of avatars, each in its own art style, fill the plaza.</li><li>A creature a child built in the studio rises over the crowd as fireworks go off.</li><li>Wide shot: the whole world in one frame.</li></ol>
+        <p class="endline">Launch night. Come as who you want to be.</p></article>
+    </div>
+
+    <div class="sub"><h3>A real launch hunt: “The first key”</h3></div>
+    <p class="note" style="margin-bottom:14px">The precedent: for the 2012 paperback, Ernest Cline hid an Easter egg in the text. It led to a new Atari 2600 game, then staged challenges on 1 July and 1 August, and the winner, Craig Queen, was handed a restored DeLorean on G4's X-Play.</p>
+    <ol class="numbered">
+      <li>The final frame of the launch film hides a clue.</li>
+      <li>The clue opens a hidden door in the culture district.</li>
+      <li>Three gates, one per district: a race whose shortcut hides in plain sight, a library riddle the AI curator will only hint at, and a studio brief judged by the community.</li>
+      <li>Plaza screens show a live leaderboard, so the hunt itself becomes something to watch.</li>
+      <li>The winner gets a real-world prize and a permanent exhibit in the museum; everyone who finishes keeps a badge item.</li>
+    </ol>
+    <p class="note" style="margin-top:12px">Run it for a fixed window and end with the “Everyone shows up” launch night. Prize promotions are regulated, and Japan caps the value of some promotional prizes, so have the rules checked for each country.</p>
+
+    <div class="sub"><h3>Rules for the ads</h3></div>
+    <div class="checks">
+      <span class="check"><b>Never name it</b>no “Ready Player One”, “OASIS” or character names in ads, store listings or slogans</span>
+      <span class="check"><b>No borrowed worlds</b>every car, creature and place in an ad is original or player-made</span>
+      <span class="check"><b>Show what ships</b>anything AI-made in an ad can be made in the product that day</span>
+      <span class="check"><b>Welcome everyone</b>lead with making things, not obscure trivia; the novel drew criticism for gatekeeping</span>
+      <span class="check"><b>Get it reviewed</b>a lawyer checks the name, trademarks and contest rules before launch</span>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <h3>Sources</h3>
+    <ul>
+      <li><a href="https://about.roblox.com/newsroom/2026/09/rdc-2026-the-world-needs-more-play" target="_blank" rel="noopener">RDC 2026: The World Needs More Play</a> · Roblox, 11 Sep 2026</li>
+      <li><a href="https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_web.html" target="_blank" rel="noopener">Exporting for the Web</a> · Godot docs</li>
+      <li><a href="https://app.cinevva.com/guides/webgpu-vs-webgl-games" target="_blank" rel="noopener">WebGPU vs WebGL for Games (2026)</a> · Cinevva</li>
+      <li><a href="https://threejs.org/manual/en/webgpurenderer" target="_blank" rel="noopener">WebGPURenderer manual</a> · three.js</li>
+      <li><a href="https://app.cinevva.com/guides/multiplayer-browser-game" target="_blank" rel="noopener">How to Make a Multiplayer Browser Game (2026)</a> · Cinevva</li>
+      <li><a href="https://www.pistack.xyz/posts/2026-09-24-nakama-vs-colyseus-vs-spacetimedb-self-hosted-game-backend/" target="_blank" rel="noopener">Nakama vs Colyseus vs SpacetimeDB</a> · 24 Sep 2026</li>
+      <li><a href="https://www.photonengine.com/llms.txt" target="_blank" rel="noopener">Photon products and pricing</a> · Photon</li>
+      <li><a href="https://developer.chrome.com/blog/html-in-canvas-origin-trial" target="_blank" rel="noopener">HTML-in-Canvas origin trial</a> · Chrome for Developers</li>
+      <li><a href="https://vrm.dev/en/vrm/vrm_features/" target="_blank" rel="noopener">VRM features</a> · vrm.dev</li>
+      <li><a href="https://avatarsdk.com/blog/2026/08/31/avatar-platforms-2026-whos-alive-whos-gone/" target="_blank" rel="noopener">Avatar platforms in 2026</a> · Avatar SDK, 31 Aug 2026</li>
+      <li><a href="https://docs.meshy.ai" target="_blank" rel="noopener">Meshy API docs</a></li>
+      <li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview" target="_blank" rel="noopener">Tool use</a> and <a href="https://platform.claude.com/docs/en/agents-and-tools/mcp-connector" target="_blank" rel="noopener">MCP connector</a> · Claude docs</li>
+    </ul>
+    <h3 style="margin-top:22px">Launch ads sources</h3>
+    <ul>
+      <li><a href="https://en.wikipedia.org/wiki/Ready_Player_One_(film)" target="_blank" rel="noopener">Ready Player One (film)</a> and <a href="https://en.wikipedia.org/wiki/Ready_Player_One" target="_blank" rel="noopener">Ready Player One (novel)</a> · Wikipedia</li>
+      <li><a href="https://looper.com/100026/ready-player-one-trailer" target="_blank" rel="noopener">Ready Player One trailer</a> · Looper</li>
+      <li><a href="https://www.slashfilm.com/552164/ready-player-one-trailer-comic-con/" target="_blank" rel="noopener">Comic-Con 2017 teaser</a> and <a href="https://www.slashfilm.com/557284/ready-player-one-shining-scene/" target="_blank" rel="noopener">The Shining scene</a> · Slashfilm</li>
+      <li><a href="https://cinemablend.com/news/2396341/5-coolest-moments-in-ready-player-one" target="_blank" rel="noopener">5 coolest moments</a> · CinemaBlend</li>
+      <li><a href="https://www.fandom.com/articles/ready-player-one-why-the-quests-have-been-changed-for-the-movie" target="_blank" rel="noopener">Why the quests changed for the movie</a> · Fandom</li>
+      <li><a href="https://readyplayerone.fandom.com/wiki/Halliday_Journals" target="_blank" rel="noopener">Halliday Journals</a> · Ready Player One Wiki</li>
+      <li><a href="https://vrscout.com/news/inside-ready-player-one-oasis-sxsw" target="_blank" rel="noopener">Inside the OASIS at SXSW</a> · VRScout, and <a href="https://www.roadtovr.com/7-official-ready-play-one-vr-experiences-debut-sxsw-soon-available-home-download/" target="_blank" rel="noopener">8 official VR experiences</a> · Road to VR</li>
+      <li><a href="https://geekdad.com/2012/06/qa-with-ready-player-one-author-ernie-cline/" target="_blank" rel="noopener">DeLorean contest Q&amp;A</a> · GeekDad, and <a href="https://boingboing.net/2012/08/31/ready-player-one-delorean.html" target="_blank" rel="noopener">DeLorean prize awarded</a> · Boing Boing</li>
+    </ul>
+    <p style="margin-top:16px">This page is the single plan for the project, as of 3 Oct 2026.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  /* ---------- world map ---------- */
+  var ZONES = {
+    plaza:{name:"Plaza",kind:"Spawn hub",does:"Meet people, chat, emote, catch live events, and take portals to every area.",builds:"Your team. Agents you run add seasonal decor.",room:"Shared, split into parallel copies of about 50 players when busy."},
+    arena:{name:"Arena district",kind:"Racing and puzzles",does:"Race, solve puzzles and play mini-games with timers and leaderboards.",builds:"Your team builds the game modes; players and agents make tracks and levels from them.",room:"Match rooms of 2 to 16 players."},
+    culture:{name:"Culture district",kind:"Library, theatre, museum",does:"Read in the library, watch scheduled screenings, and tour a museum of AI-made art and 3D works.",builds:"Your team curates, players submit, and AI guides give tours.",room:"Shared, split into parallel copies when busy."},
+    "private":{name:"Private spaces",kind:"Homes, studios, clubs",does:"Build a home, studio or club by talking to your agent, host friends and play with items.",builds:"The owner and their agent.",room:"Private, friends-only or public, set by the owner."},
+    solo:{name:"Creator studio",kind:"You and your agent",does:"Create alone with your agent: walk through the drafts it generates, refine them, then keep or publish.",builds:"You and your agent.",room:"Single-player, no game server."}
+  };
+  var panel = document.getElementById("zpanel");
+  var zoneEls = document.querySelectorAll(".zone");
+  function pick(key){
+    var z = ZONES[key]; if(!z) return;
+    zoneEls.forEach(function(el){ el.setAttribute("aria-pressed", el.dataset.zone===key ? "true":"false"); });
+    panel.style.setProperty("--z","var(--z-"+key+")");
+    document.getElementById("zpName").textContent = z.name;
+    document.getElementById("zpKind").textContent = z.kind;
+    document.getElementById("zpDoes").textContent = z.does;
+    document.getElementById("zpBuilds").textContent = z.builds;
+    document.getElementById("zpRoom").textContent = z.room;
+  }
+  zoneEls.forEach(function(el){
+    el.addEventListener("click", function(){ pick(el.dataset.zone); });
+    el.addEventListener("keydown", function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); pick(el.dataset.zone); } });
+  });
+
+  /* ---------- chapter rail ---------- */
+  var chips = Array.prototype.slice.call(document.querySelectorAll(".chip"));
+  var chipBox = document.getElementById("chips");
+  function setActive(id){
+    chips.forEach(function(c){
+      var on = c.getAttribute("href")==="#"+id;
+      c.setAttribute("aria-current", on ? "true":"false");
+      if(on){
+        var l = c.offsetLeft - chipBox.offsetLeft, r = l + c.offsetWidth;
+        if(l < chipBox.scrollLeft || r > chipBox.scrollLeft + chipBox.clientWidth){
+          chipBox.scrollTo({left: Math.max(0, l - 16), behavior: "smooth"});
+        }
+      }
+    });
+  }
+  setActive("overview");
+  if("IntersectionObserver" in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ if(en.isIntersecting) setActive(en.target.id); });
+    },{rootMargin:"-45% 0px -50% 0px"});
+    document.querySelectorAll("main section[id]").forEach(function(s){ io.observe(s); });
+  }
+
+  /* ---------- travel levels ---------- */
+  var LV = {
+    walk:["Walk","Third-person view in full detail. The minimap in the corner opens the atlas."],
+    over:["Overview","The district becomes a small, readable board. Tap a spot and your avatar walks there; landmarks and friends are easy to spot."],
+    atlas:["Atlas","The whole world on one map, with friends and live events. Tap a place and travel there instantly."]
+  };
+  var lvlSeg = document.getElementById("lvlSeg"), lvlCap = document.getElementById("lvlCap");
+  lvlSeg.addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    var k = b.dataset.lvl;
+    lvlSeg.querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-pressed", x===b ? "true":"false"); });
+    ["walk","over","atlas"].forEach(function(n){ document.getElementById("lvl-"+n).toggleAttribute("hidden", n!==k); });
+    lvlCap.innerHTML = "<b>"+LV[k][0]+"</b>"+LV[k][1];
+  });
+
+  /* ---------- camera toggle ---------- */
+  var camSeg = document.getElementById("camSeg");
+  camSeg.addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    var m = b.dataset.cam;
+    camSeg.querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-pressed", x===b ? "true":"false"); });
+    document.getElementById("cam3d").toggleAttribute("hidden", m!=="3d");
+    document.getElementById("cam2d").toggleAttribute("hidden", m!=="2d");
+  });
+
+  /* ---------- decisions ---------- */
+  var KEY = "superworld-decisions";
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch(e){ saved = {}; }
+  document.querySelectorAll("#decList input").forEach(function(inp){
+    if(saved[inp.id]) inp.checked = true;
+    inp.addEventListener("change", function(){
+      saved[inp.id] = inp.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch(e){}
+    });
+  });
+
+  /* ---------- style mixer ---------- */
+  var OPTIONS = {
+    form:[["lowpoly","Low-poly","low-poly"],["smooth","Smooth","smooth"],["voxel","Voxel","voxel"]],
+    surface:[["toon","Toon","toon"],["soft","Soft","soft"],["ink","Ink line","ink-line"]],
+    colour:[["dusk","Dusk","dusk"],["mint","Mint","mint"],["candy","Candy","candy"],["mono","Mono","mono"]],
+    light:[["golden","Golden hour","golden-hour"],["noon","Noon","noon"],["overcast","Overcast","overcast"],["neon","Neon night","neon-night"]],
+    atmos:[["clear","Clear","clear"],["mist","Mist","mist"],["stars","Stars","starfield"],["petals","Petals","falling-petals"]],
+    post:[["none","None",null],["outline","Outlines","outline"],["pixel","Pixelate","pixelate"],["grain","Film grain","film-grain"],["bloom","Bloom","bloom"]]
+  };
+  var LABELS = {form:"Form",surface:"Surface",colour:"Colour",light:"Light",atmos:"Atmosphere",post:"Post-effect"};
+  var S = {form:"lowpoly",surface:"toon",colour:"dusk",light:"golden",atmos:"petals",post:"outline"};
+  var PAL = {dusk:["#F2785C","#6C4FB3","#2E9C8A","#FFD36E"],mint:["#3FBF9B","#1F6F5E","#9BD46B","#F58DA8"],candy:["#FF6FB5","#59C3E8","#B28DFF","#FFE066"],mono:["#2A2D34","#6B7080","#A9AEBB","#E6E8EE"]};
+  var SKY = {golden:["#FF9D6C","#FFDCA6"],noon:["#5FB2F5","#D3EDFF"],overcast:["#8E97A5","#CDD2DA"],neon:["#0F0A2B","#3B1670"]};
+
+  var topicsEl = document.getElementById("topics");
+  Object.keys(OPTIONS).forEach(function(t){
+    var wrap = document.createElement("div"); wrap.className = "topic";
+    var lab = document.createElement("p"); lab.className = "eyebrow"; lab.id = "lab-"+t; lab.textContent = LABELS[t];
+    var row = document.createElement("div"); row.className = "opts"; row.setAttribute("role","group"); row.setAttribute("aria-labelledby","lab-"+t);
+    OPTIONS[t].forEach(function(o){
+      var b = document.createElement("button"); b.type = "button"; b.className = "opt"; b.textContent = o[1];
+      b.dataset.t = t; b.dataset.v = o[0]; b.id = "opt-"+t+"-"+o[0];
+      b.setAttribute("aria-pressed", S[t]===o[0] ? "true":"false");
+      row.appendChild(b);
+    });
+    wrap.appendChild(lab); wrap.appendChild(row); topicsEl.appendChild(wrap);
+  });
+  var pickedBy = document.getElementById("pickedBy");
+  topicsEl.addEventListener("click", function(e){
+    var b = e.target.closest(".opt"); if(!b) return;
+    S[b.dataset.t] = b.dataset.v; pickedBy.textContent = "Style profile for one space"; sync();
+  });
+  document.getElementById("agentPick").addEventListener("click", function(){
+    Object.keys(OPTIONS).forEach(function(t){ var list = OPTIONS[t]; S[t] = list[Math.floor(Math.random()*list.length)][0]; });
+    pickedBy.textContent = "Picked by the agent"; sync();
+  });
+
+  function val(t){ var o = OPTIONS[t].filter(function(x){ return x[0]===S[t]; })[0]; return o ? o[2] : null; }
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+  function renderProfile(){
+    var post = val("post");
+    var lines = [
+      ['"scope"','"space"'],
+      ['"form"','"'+val("form")+'"'],
+      ['"surface"','"'+val("surface")+'"'],
+      ['"colour"','"'+val("colour")+'"'],
+      ['"light"','"'+val("light")+'"'],
+      ['"atmosphere"','"'+val("atmos")+'"'],
+      ['"postEffects"', post ? '["'+post+'"]' : "[]"],
+      ['"motion"','"inherit"',true],
+      ['"sound"','"inherit"',true],
+      ['"look2d"','"inherit"',true]
+    ];
+    var html = "{\n" + lines.map(function(l,i){
+      var v = l[2] ? '<span class="inh">'+esc(l[1])+'</span>' : esc(l[1]);
+      return '  <span class="k">'+esc(l[0])+'</span>: '+v+(i<lines.length-1?",":"");
+    }).join("\n") + "\n}";
+    document.getElementById("profile").innerHTML = html;
+  }
+  function sync(){
+    document.querySelectorAll(".opt").forEach(function(b){ b.setAttribute("aria-pressed", S[b.dataset.t]===b.dataset.v ? "true":"false"); });
+    renderProfile(); draw();
+  }
+
+  /* canvas */
+  var W = 480, H = 300;
+  var main = document.getElementById("stage");
+  var SC = Math.min(2, window.devicePixelRatio || 1);
+  main.width = W*SC; main.height = H*SC;
+  var mctx = main.getContext("2d");
+  var scene = document.createElement("canvas"); scene.width = W*SC; scene.height = H*SC;
+  var g = scene.getContext("2d");
+  var tiny = document.createElement("canvas"); tiny.width = Math.round(W/5); tiny.height = Math.round(H/5);
+  var tctx = tiny.getContext("2d");
+  var noise = document.createElement("canvas"); noise.width = W*SC; noise.height = H*SC;
+  (function(){
+    var n = noise.getContext("2d"), img = n.createImageData(noise.width, noise.height), d = img.data, r = rng(99);
+    for(var i=0;i<d.length;i+=4){ var v = r()<.5 ? 0 : 255; d[i]=d[i+1]=d[i+2]=v; d[i+3]= Math.floor(r()*34); }
+    n.putImageData(img,0,0);
+  })();
+
+  function rng(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; var t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+  function hex(h){ h=h.replace("#",""); return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)]; }
+  function mix(a,b,t){ var x=hex(a), y=hex(b); return "rgb("+Math.round(x[0]+(y[0]-x[0])*t)+","+Math.round(x[1]+(y[1]-x[1])*t)+","+Math.round(x[2]+(y[2]-x[2])*t)+")"; }
+  function mixHex(a,b,t){ var x=hex(a), y=hex(b); function h2(v){ var s=Math.round(v).toString(16); return s.length<2?"0"+s:s; } return "#"+h2(x[0]+(y[0]-x[0])*t)+h2(x[1]+(y[1]-x[1])*t)+h2(x[2]+(y[2]-x[2])*t); }
+
+  function paint(build, color, box, flat){
+    g.beginPath(); build();
+    var fill = color;
+    if(S.surface==="soft"){ var lg = g.createLinearGradient(box[0],box[1],box[0],box[1]+box[3]); lg.addColorStop(0, mix(color,"#ffffff",.3)); lg.addColorStop(1, mix(color,"#000000",.22)); fill = lg; }
+    if(S.surface==="ink"){ fill = mix(color,"#ffffff",.8); }
+    g.fillStyle = fill; g.fill();
+    if(S.surface==="toon" && !flat){ g.save(); g.clip(); g.fillStyle = mix(color,"#000000",.2); g.fillRect(box[0]+box[2]*.62, box[1]-2, box[2], box[3]+4); g.restore(); }
+    if(S.surface==="ink" || S.post==="outline"){ g.lineWidth = S.surface==="ink" ? 1.6 : 2.4; g.strokeStyle = "#1C1B29"; g.lineJoin = "round"; g.stroke(); }
+  }
+  function stepped(heights){ g.moveTo(0,H); for(var i=0;i<heights.length;i++){ g.lineTo(i*32,heights[i]); g.lineTo((i+1)*32,heights[i]); } g.lineTo(W,H); g.closePath(); }
+
+  function tree(x, y, s, pal){
+    var trunk = mixHex(pal[1],"#000000",.35), crown = mixHex(pal[2],"#000000",.12);
+    if(S.form==="voxel"){
+      paint(function(){ g.rect(x-4*s,y-22*s,8*s,22*s); }, trunk, [x-4*s,y-22*s,8*s,22*s]);
+      paint(function(){ g.rect(x-16*s,y-46*s,32*s,26*s); g.rect(x-10*s,y-60*s,20*s,16*s); }, crown, [x-16*s,y-60*s,32*s,40*s]);
+    } else if(S.form==="lowpoly"){
+      paint(function(){ g.rect(x-3*s,y-18*s,6*s,18*s); }, trunk, [x-3*s,y-18*s,6*s,18*s]);
+      paint(function(){ g.moveTo(x-18*s,y-14*s); g.lineTo(x,y-64*s); g.lineTo(x+18*s,y-14*s); g.closePath(); }, crown, [x-18*s,y-64*s,36*s,50*s]);
+    } else {
+      paint(function(){ g.rect(x-3*s,y-22*s,6*s,22*s); }, trunk, [x-3*s,y-22*s,6*s,22*s]);
+      paint(function(){ g.arc(x,y-38*s,19*s,0,Math.PI*2); }, crown, [x-19*s,y-57*s,38*s,38*s]);
+    }
+  }
+  function sun(x,y,r,c){ g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fillStyle=c; g.fill(); if(S.post==="outline"||S.surface==="ink"){ g.lineWidth=S.surface==="ink"?1.6:2.4; g.strokeStyle="#1C1B29"; g.stroke(); } }
+
+  function draw(){
+    var pal = PAL[S.colour], r = rng(7), glows = [];
+    g.setTransform(1,0,0,1,0,0); g.globalCompositeOperation="source-over"; g.globalAlpha=1;
+    g.clearRect(0,0,scene.width,scene.height); g.scale(SC,SC);
+    var sk = SKY[S.light], top = sk[0], bot = sk[1];
+    if(S.surface==="ink"){ top = mixHex(top,"#ffffff",.6); bot = mixHex(bot,"#ffffff",.6); }
+    var grd = g.createLinearGradient(0,0,0,H*.75); grd.addColorStop(0,top); grd.addColorStop(1,bot);
+    g.fillStyle = grd; g.fillRect(0,0,W,H);
+
+    if(S.atmos==="stars"){
+      var a = S.light==="neon" ? .95 : .4;
+      for(var i=0;i<80;i++){ var sx=r()*W, sy=r()*H*.55, sr=r()*1.4+.3; g.fillStyle="rgba(255,255,255,"+(a*(.35+r()*.65)).toFixed(2)+")"; g.beginPath(); g.arc(sx,sy,sr,0,7); g.fill(); }
+    }
+    if(S.light==="golden"){ sun(382,168,30,"#FFE3A8"); glows.push([382,168,110,"255,200,120"]); }
+    else if(S.light==="noon"){ sun(404,54,22,"#FFF6C9"); glows.push([404,54,80,"255,245,200"]); }
+    else if(S.light==="neon"){ sun(392,58,16,"#ECE8FF"); glows.push([392,58,60,"200,190,255"]); }
+    if(S.light==="overcast"||S.light==="noon"){
+      var cc = S.light==="overcast" ? "rgba(236,239,244,.9)" : "rgba(255,255,255,.85)";
+      [[96,62,34,13],[126,56,26,11],[300,80,40,14],[338,72,28,12],[230,40,22,8]].forEach(function(c){ g.beginPath(); g.ellipse(c[0],c[1],c[2],c[3],0,0,Math.PI*2); g.fillStyle=cc; g.fill(); });
+    }
+
+    var far = pal[1], near = pal[2];
+    if(S.form==="voxel"){
+      paint(function(){ stepped([190,172,152,152,170,142,132,150,170,160,142,150,166,176,162]); }, far, [0,130,W,H-130], true);
+      paint(function(){ stepped([232,228,228,224,224,228,232,232,228,224,220,224,228,232,232]); }, near, [0,218,W,H-218], true);
+    } else if(S.form==="lowpoly"){
+      paint(function(){ g.moveTo(0,190); [[60,140],[120,170],[190,122],[260,165],[330,130],[410,152],[W,124],[W,H],[0,H]].forEach(function(p){ g.lineTo(p[0],p[1]); }); g.closePath(); }, far, [0,122,W,H-122], true);
+      paint(function(){ g.moveTo(0,230); [[90,216],[200,228],[300,214],[390,232],[W,218],[W,H],[0,H]].forEach(function(p){ g.lineTo(p[0],p[1]); }); g.closePath(); }, near, [0,214,W,H-214], true);
+    } else {
+      paint(function(){ g.moveTo(0,190); g.quadraticCurveTo(70,122,160,166); g.quadraticCurveTo(250,206,330,150); g.quadraticCurveTo(404,106,W,160); g.lineTo(W,H); g.lineTo(0,H); g.closePath(); }, far, [0,130,W,H-130], true);
+      paint(function(){ g.moveTo(0,232); g.quadraticCurveTo(160,206,300,226); g.quadraticCurveTo(400,240,W,220); g.lineTo(W,H); g.lineTo(0,H); g.closePath(); }, near, [0,210,W,H-210], true);
+    }
+
+    tree(84,236,1,pal); tree(128,244,.8,pal); tree(424,232,1.1,pal);
+    var rock = mixHex(pal[1],"#ffffff",.25);
+    if(S.form==="voxel") paint(function(){ g.rect(318,224,26,18); g.rect(330,212,18,14); }, rock, [318,212,30,30]);
+    else if(S.form==="lowpoly") paint(function(){ g.moveTo(312,244); g.lineTo(320,222); g.lineTo(338,214); g.lineTo(354,228); g.lineTo(352,244); g.closePath(); }, rock, [312,214,42,30]);
+    else paint(function(){ g.ellipse(334,234,22,13,0,0,Math.PI*2); }, rock, [312,221,44,26]);
+
+    if(S.light==="neon"){
+      g.fillStyle="#2A2440"; g.fillRect(168,176,4,64);
+      g.beginPath(); g.arc(170,172,6,0,Math.PI*2); g.fillStyle="#FFE58A"; g.fill();
+      glows.push([170,172,70,"255,220,120"]);
+    }
+
+    g.beginPath(); g.ellipse(240,244,24,6,0,0,Math.PI*2); g.fillStyle="rgba(0,0,0,.2)"; g.fill();
+    var body = pal[0], head = pal[3];
+    if(S.form==="voxel"){
+      paint(function(){ g.rect(226,196,28,46); }, body, [226,196,28,46]);
+      paint(function(){ g.rect(227,168,26,26); }, head, [227,168,26,26]);
+      g.fillStyle="#1C1B29"; g.fillRect(233,178,4,4); g.fillRect(243,178,4,4);
+    } else if(S.form==="lowpoly"){
+      paint(function(){ g.moveTo(224,242); g.lineTo(232,198); g.lineTo(248,198); g.lineTo(256,242); g.closePath(); }, body, [224,198,32,44]);
+      paint(function(){ for(var k=0;k<6;k++){ var an = Math.PI/6 + k*Math.PI/3; var px = 240+14*Math.cos(an), py = 182+14*Math.sin(an); if(k===0) g.moveTo(px,py); else g.lineTo(px,py); } g.closePath(); }, head, [226,168,28,28]);
+      g.fillStyle="#1C1B29"; g.beginPath(); g.arc(235,181,1.8,0,7); g.arc(245,181,1.8,0,7); g.fill();
+    } else {
+      paint(function(){ if(g.roundRect){ g.roundRect(226,196,28,46,14); } else { g.rect(226,196,28,46); } }, body, [226,196,28,46]);
+      paint(function(){ g.arc(240,180,14,0,Math.PI*2); }, head, [226,166,28,28]);
+      g.fillStyle="#1C1B29"; g.beginPath(); g.arc(235,180,1.8,0,7); g.arc(245,180,1.8,0,7); g.fill();
+    }
+
+    var tint = {golden:["rgba(255,160,100,",.24],overcast:["rgba(150,156,170,",.3],neon:["rgba(60,30,150,",.55],noon:null}[S.light];
+    if(tint){ var ta = tint[1]*(S.surface==="ink"?.5:1); g.globalCompositeOperation="multiply"; g.fillStyle=tint[0]+ta+")"; g.fillRect(0,0,W,H); g.globalCompositeOperation="source-over"; }
+
+    if(S.atmos==="mist"){
+      var mg = g.createLinearGradient(0,150,0,H); var mc = S.light==="neon" ? "190,180,255" : "255,255,255";
+      mg.addColorStop(0,"rgba("+mc+",0)"); mg.addColorStop(1,"rgba("+mc+",.7)"); g.fillStyle=mg; g.fillRect(0,150,W,H-150);
+    }
+    if(S.atmos==="petals"){
+      var pr = rng(21);
+      for(var p=0;p<34;p++){ var px2=pr()*W, py2=pr()*H*.95, rot=pr()*Math.PI; g.beginPath(); g.ellipse(px2,py2,3.6,1.9,rot,0,Math.PI*2); g.fillStyle="rgba(255,182,204,.92)"; g.fill(); }
+    }
+    if(S.post==="bloom"){
+      g.globalCompositeOperation="screen";
+      glows.forEach(function(o){ var rg=g.createRadialGradient(o[0],o[1],0,o[0],o[1],o[2]); rg.addColorStop(0,"rgba("+o[3]+",.6)"); rg.addColorStop(1,"rgba("+o[3]+",0)"); g.fillStyle=rg; g.fillRect(0,0,W,H); });
+      g.fillStyle="rgba(255,240,230,.07)"; g.fillRect(0,0,W,H);
+      g.globalCompositeOperation="source-over";
+    }
+
+    mctx.setTransform(1,0,0,1,0,0); mctx.globalCompositeOperation="source-over"; mctx.clearRect(0,0,main.width,main.height);
+    if(S.post==="pixel"){
+      tctx.imageSmoothingEnabled = true; tctx.clearRect(0,0,tiny.width,tiny.height); tctx.drawImage(scene,0,0,tiny.width,tiny.height);
+      mctx.imageSmoothingEnabled = false; mctx.drawImage(tiny,0,0,main.width,main.height);
+    } else {
+      mctx.imageSmoothingEnabled = true; mctx.drawImage(scene,0,0);
+    }
+    if(S.post==="grain"){ mctx.drawImage(noise,0,0); }
+  }
+
+  sync();
+})();
+</script>
+
+</body></html>
