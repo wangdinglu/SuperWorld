@@ -29,6 +29,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Never replace the working site with a broken build: run every check first.
+      - run: pnpm check
       - run: pnpm --filter @superworld/web build
         env:
           VITE_SERVER_URL: ${{ vars.SERVER_URL }}
