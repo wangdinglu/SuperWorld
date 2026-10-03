@@ -15,6 +15,8 @@ import {
   toggleMute,
 } from "../store.ts";
 import { Joystick } from "./Joystick.tsx";
+import { AccountPanel } from "./AccountPanel.tsx";
+import { account } from "../account.ts";
 
 const EMOTE_LABEL: Record<Emote, string> = {
   wave: "👋 Wave",
@@ -28,6 +30,7 @@ export function Hud(props: { game: Game }) {
   const { game } = props;
   const [showPeople, setShowPeople] = useState(false);
   const [showEmotes, setShowEmotes] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
   const [draft, setDraft] = useState("");
   const chatInput = useRef<HTMLInputElement>(null);
 
@@ -51,9 +54,20 @@ export function Hud(props: { game: Game }) {
             {info.backend} · {info.tier}
           </div>
         )}
+        {!soloMode.value && (
+          <button
+            class="pill"
+            onClick={() => setShowAccount(!showAccount)}
+            aria-expanded={showAccount}
+          >
+            {account.value?.user.kind === "member" ? "Account" : "Keep my account"}
+          </button>
+        )}
       </div>
 
-      {showPeople && (
+      {showAccount && <AccountPanel onClose={() => setShowAccount(false)} />}
+
+      {showPeople && !showAccount && (
         <div class="card panel people">
           <h2>People nearby</h2>
           {people.value.length === 0 && (

@@ -33,6 +33,12 @@ module.exports = {
       to: { path: "^packages/(?!schema/|core/|protocol/)" },
     },
     {
+      name: "db-only-in-server-apps",
+      severity: "error",
+      from: { pathNot: "^(apps/server|packages/db)/" },
+      to: { path: "^packages/db/" },
+    },
+    {
       name: "three-only-in-render-and-web",
       severity: "error",
       from: { pathNot: "^(packages/render|apps/web)/" },

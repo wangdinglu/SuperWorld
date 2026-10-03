@@ -17,12 +17,14 @@ import {
   type EmoteBroadcast,
 } from "@superworld/protocol";
 import type { Content } from "../content.ts";
-import { type GuestIdentity, verifyGuestToken } from "../guest.ts";
+import { createReport, type Db, getUser, touchUser } from "@superworld/db";
+import { type Identity, verifyToken } from "../tokens.ts";
 import { visibleFor } from "../interest.ts";
 import { maskText, RateLimiter } from "../moderation.ts";
 
 export interface PlazaRoomOptions {
   content: Content;
+  db: Db;
   placeId: string;
 }
 
@@ -38,13 +40,14 @@ const STATS_EVERY_TICKS = TICK_RATE * 30;
 export class PlazaRoom extends Room<{
   state: PlaceState;
   input: MoveInput;
-  client: Client<{ auth: GuestIdentity }>;
+  client: Client<{ auth: Identity }>;
 }> {
   override maxClients = PLAZA_CAPACITY;
   override state = new PlaceState();
   override inputs = this.defineInput(MoveInput);
 
   private world!: PlaceWorld;
+  private db!: Db;
   private readonly rng = createRng(Date.now() & 0xffffffff);
   private readonly visible = new Map<string, Set<string>>();
   private readonly chatLimit = new RateLimiter(5, 10_000);
@@ -56,6 +59,7 @@ export class PlazaRoom extends Room<{
   override async onCreate(options: PlazaRoomOptions): Promise<void> {
     const scene = options.content.scenes[options.placeId];
     if (!scene) throw new Error(`No scene for place "${options.placeId}"`);
+    this.db = options.db;
     await initPhysics();
     this.world = PlaceWorld.build(scene, options.content.templates);
     this.state.place = scene.place;
@@ -122,30 +126,34 @@ export class PlazaRoom extends Room<{
     this.onMessage("report", (client, message: unknown) => {
       const parsed = ReportMessage.safeParse(message);
       if (!parsed.success) return;
-      // Phase 1: reports go to the server log. Phase 2 stores them for review.
-      console.warn(
-        JSON.stringify({
-          event: "report",
-          room: this.roomId,
-          from: client.sessionId,
-          ...parsed.data,
-          at: new Date().toISOString(),
-        }),
-      );
+      const target = this.clients.find((c) => c.sessionId === parsed.data.sessionId);
+      void createReport(this.db, {
+        reporterId: client.auth?.userId ?? null,
+        targetUserId: (target?.auth as Identity | undefined)?.userId ?? null,
+        room: this.roomId,
+        reason: parsed.data.reason,
+      }).catch((err) => console.error("report failed", err));
     });
   }
 
-  override onAuth(_client: Client, options: unknown, context: AuthContext): GuestIdentity {
+  override async onAuth(
+    _client: Client,
+    options: unknown,
+    context: AuthContext,
+  ): Promise<Identity> {
     const parsed = JoinOptions.safeParse(options);
     if (!parsed.success) throw new Error("Invalid join options");
     if (parsed.data.protocol !== PROTOCOL_VERSION)
       throw new Error("Client is out of date: please reload");
-    const identity = verifyGuestToken(context.token);
-    if (!identity) throw new Error("Missing or invalid guest token");
-    return identity;
+    const identity = verifyToken(context.token);
+    const user = identity ? await getUser(this.db, identity.userId) : undefined;
+    if (!identity || !user) throw new Error("Missing or invalid guest token");
+    void touchUser(this.db, user.id).catch(() => {});
+    // The database is the source of truth for names and colours (they may have changed since the token was issued).
+    return { ...identity, kind: user.kind, name: user.displayName, colour: user.colour };
   }
 
-  override onJoin(client: Client<{ auth: GuestIdentity }>): void {
+  override onJoin(client: Client<{ auth: Identity }>): void {
     const identity = client.auth!;
     const [x, y, z] = this.world.spawnPosition(this.rng(), this.rng());
     const player = new Player();

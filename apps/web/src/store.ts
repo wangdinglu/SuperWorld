@@ -43,3 +43,4 @@ export function pushChat(entry: Omit<ChatEntry, "id">): void {
   chatLog.value = [...chatLog.value.slice(-49), { ...entry, id: nextId++ }];
 }
 export const soloMode = signal(false);
+export const notice = signal("");

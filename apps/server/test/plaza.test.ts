@@ -6,12 +6,26 @@ import {
   quantiseAxis,
   type ChatBroadcast,
 } from "@superworld/protocol";
+import { openDatabase, seedPlace, tables } from "@superworld/db";
 import { createServer } from "../src/app.ts";
 import { loadContent } from "../src/content.ts";
 
 const port = 3900 + Math.floor(Math.random() * 500);
 const base = `http://localhost:${port}`;
-const server = createServer(loadContent());
+const content = loadContent();
+const database = await openDatabase();
+await seedPlace(database.db, {
+  id: "plaza",
+  kind: "plaza",
+  name: "Plaza",
+  scene: content.scenes.plaza!,
+});
+const sentLinks: { to: string; link: string }[] = [];
+const server = createServer({
+  content,
+  db: database.db,
+  mailer: { sendLoginLink: async (to, link) => void sentLinks.push({ to, link }) },
+});
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function guest(name: string): Promise<string> {
@@ -21,6 +35,18 @@ async function guest(name: string): Promise<string> {
     body: JSON.stringify({ name, colour: "#3366ff" }),
   });
   return ((await res.json()) as { token: string }).token;
+}
+
+async function api(path: string, body?: unknown, token?: string, method = body ? "POST" : "GET") {
+  const res = await fetch(`${base}${path}`, {
+    method,
+    headers: {
+      "content-type": "application/json",
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  return { status: res.status, body: (await res.json()) as Record<string, any> };
 }
 
 async function join(name: string): Promise<Room> {
@@ -37,16 +63,17 @@ async function until(check: () => boolean, timeoutMs = 3000): Promise<void> {
   }
 }
 
-describe("plaza room", () => {
-  const rooms: Room[] = [];
-  beforeAll(async () => {
-    await server.listen(port);
-  });
-  afterAll(async () => {
-    for (const r of rooms) await r.leave().catch(() => {});
-    await server.gracefullyShutdown(false);
-  });
+const rooms: Room[] = [];
+beforeAll(async () => {
+  await server.listen(port);
+});
+afterAll(async () => {
+  for (const r of rooms) await r.leave().catch(() => {});
+  await server.gracefullyShutdown(false);
+  await database.close();
+});
 
+describe("plaza room", () => {
   it("puts a joining player in the spawn area", async () => {
     const room = await join("Ada");
     rooms.push(room);
@@ -111,6 +138,17 @@ describe("plaza room", () => {
     expect(entries[0]).toMatchObject({ fps: 58.5, tier: "high", device: "desktop" });
   });
 
+  it("stores reports with both players' accounts", async () => {
+    const [a, b] = [rooms[0]!, rooms[1]!];
+    a.send("report", { sessionId: b.sessionId, reason: "test report" });
+    await until(() => false, 300).catch(() => {});
+    const stored = await database.db.select().from(tables.reports);
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({ reason: "test report" });
+    expect(stored[0]!.reporterId).not.toBeNull();
+    expect(stored[0]!.targetUserId).not.toBeNull();
+  });
+
   it("rejects clients without a valid token or with an old protocol", async () => {
     const noToken = new Client(base);
     await expect(
@@ -121,5 +159,54 @@ describe("plaza room", () => {
     await expect(
       old.joinOrCreate("plaza", { protocol: PROTOCOL_VERSION - 1, name: "Old", colour: "#000000" }),
     ).rejects.toThrow(/out of date/);
+  });
+});
+
+describe("accounts", () => {
+  it("returns the signed-in user and lets them rename", async () => {
+    const created = await api("/api/guest", { name: "Lin", colour: "#00aa00" });
+    expect(created.body.user).toMatchObject({ kind: "guest", name: "Lin" });
+    const renamed = await api("/api/me", { name: "Lin Yu" }, created.body.token, "PATCH");
+    expect(renamed.body.user.name).toBe("Lin Yu");
+    expect((await api("/api/me", undefined, "bad.token")).status).toBe(401);
+  });
+
+  it("keeps a guest's account by email, and signs in a second device", async () => {
+    const guest = await api("/api/guest", { name: "Mia", colour: "#aa00aa" });
+    sentLinks.length = 0;
+    expect(
+      (await api("/api/auth/email/start", { email: "Mia@Example.com" }, guest.body.token)).body,
+    ).toEqual({ ok: true });
+    expect(sentLinks[0]?.to).toBe("mia@example.com");
+    const token = new URL(sentLinks[0]!.link).searchParams.get("login")!;
+    const member = await api("/api/auth/email/finish", { token });
+    expect(member.body.user).toMatchObject({
+      id: guest.body.user.id,
+      kind: "member",
+      email: "mia@example.com",
+    });
+    expect((await api("/api/auth/email/finish", { token })).status).toBe(400);
+
+    // Another device signs in to the same account.
+    const phone = await api("/api/guest", { name: "Mia phone", colour: "#aa00aa" });
+    await api("/api/auth/email/start", { email: "mia@example.com" }, phone.body.token);
+    const second = new URL(sentLinks[1]!.link).searchParams.get("login")!;
+    expect((await api("/api/auth/email/finish", { token: second })).body.user.id).toBe(
+      guest.body.user.id,
+    );
+  });
+
+  it("puts sign-in links on this server, never on an address the request names", async () => {
+    sentLinks.length = 0;
+    await fetch(`${base}/api/auth/email/start`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "https://evil.example",
+        host: "evil.example",
+      },
+      body: JSON.stringify({ email: "victim@example.com" }),
+    });
+    expect(new URL(sentLinks[0]!.link).host).toBe(`localhost:${port}`);
   });
 });

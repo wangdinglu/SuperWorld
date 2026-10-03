@@ -14,10 +14,14 @@
     "@colyseus/schema": "^5.0.35",
     "@colyseus/ws-transport": "^0.18.4",
     "@dimforge/rapier3d-compat": "^0.21.0",
+    "@electric-sql/pglite": "^0.5.8",
     "@superworld/core": "workspace:*",
+    "@superworld/db": "workspace:*",
     "@superworld/protocol": "workspace:*",
     "@superworld/schema": "workspace:*",
+    "drizzle-orm": "^0.45.3",
     "express": "^5.2.1",
+    "postgres": "^3.4.9",
     "zod": "^4.6.5"
   },
   "devDependencies": {

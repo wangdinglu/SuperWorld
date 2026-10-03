@@ -46,6 +46,7 @@ packages/core     shared movement simulation (Rapier), runs on server and client
 packages/schema   content formats (Zod)
 packages/protocol network state, inputs and messages
 packages/style    style inheritance and palettes
+packages/db       accounts, places and revisions (Drizzle, Postgres or embedded PGlite)
 packages/render   three.js scene building, avatars, camera, quality tiers
 content/world     the world, templates and plaza scene, as data
 ```
@@ -55,6 +56,8 @@ content/world     the world, templates and plaza scene, as data
 **Web client on GitHub Pages (automatic).** Every push to `master` rebuilds https://wangdinglu.github.io/SuperWorld/ via `.github/workflows/pages.yml`. With no game server it runs solo practice. To make it multiplayer, deploy the server (below), then set the repository variable `SERVER_URL` to the server's URL (Settings → Secrets and variables → Actions → Variables) and re-run the workflow — or just open the page with `?server=<url>`.
 
 **Everything on Render (simplest).** Render → New → Blueprint → choose this repo. `render.yaml` creates one free web service that runs the game server and serves the client. The free plan sleeps after 15 minutes without visitors; the first visitor waits up to a minute while it wakes (the sign-in screen says so).
+
+**Accounts (Phase 2).** Players are saved in Postgres. Set `DATABASE_URL` on Render to a free Neon database so accounts survive restarts; without it the server uses an embedded database that resets whenever the free service restarts. For sign-in emails, set `RESEND_API_KEY` (Resend's free tier) and `PUBLIC_URL` (the address players open, e.g. the GitHub Pages URL). Without an email key, sign-in links appear in the server log.
 
 **Client on Cloudflare Pages (optional, faster worldwide).** Create a Pages project from this repo with build command `pnpm --filter @superworld/web build`, output directory `apps/web/dist`, and the environment variable `VITE_SERVER_URL` set to your Render URL. Then set `ALLOWED_ORIGINS` on Render to your Pages URL.
 

@@ -1,4 +1,5 @@
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
+import { account } from "../account.ts";
 import { NAME_MAX } from "@superworld/protocol";
 import { load } from "../storage.ts";
 
@@ -16,6 +17,7 @@ export const COLOURS = [
 export function Login(props: {
   busy: boolean;
   error: string;
+  notice: string;
   onEnter(name: string, colour: string): void;
   onSolo(name: string, colour: string): void;
 }) {
@@ -23,6 +25,15 @@ export function Login(props: {
   const [colour, setColour] = useState(
     load("colour", COLOURS[Math.floor(Math.random() * COLOURS.length)]!),
   );
+  // A finished email sign-in fills in the account's name and colour.
+  useEffect(() => {
+    const user = account.value?.user;
+    if (user) {
+      setName(user.name);
+      setColour(user.colour);
+    }
+  }, [account.value?.user.id]);
+
   const valid = name.trim().length > 0;
 
   return (
@@ -66,6 +77,14 @@ export function Login(props: {
             ))}
           </div>
         </div>
+        {props.notice && (
+          <p class="notice" role="status">
+            {props.notice}
+          </p>
+        )}
+        {account.value?.user.kind === "member" && !props.notice && (
+          <p class="notice">Signed in as {account.value.user.email}</p>
+        )}
         {props.error && (
           <p class="error" role="alert">
             {props.error}
