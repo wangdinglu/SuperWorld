@@ -2,6 +2,8 @@
 
 One shared 3D world that opens from a link on any laptop or phone. Phase 1, the walkable plaza, is in progress.
 
+**Try it:** https://wangdinglu.github.io/SuperWorld/ — runs in solo practice mode until a game server is connected (see Deploy).
+
 - **Plan:** [docs/plan/index.html](docs/plan/index.html) (the product plan)
 - **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - **Build order and status:** [docs/PROCESS_PLAN.md](docs/PROCESS_PLAN.md)
@@ -49,6 +51,8 @@ content/world     the world, templates and plaza scene, as data
 ```
 
 ## Deploy (free tier)
+
+**Web client on GitHub Pages (automatic).** Every push to `master` rebuilds https://wangdinglu.github.io/SuperWorld/ via `.github/workflows/pages.yml`. With no game server it runs solo practice. To make it multiplayer, deploy the server (below), then set the repository variable `SERVER_URL` to the server's URL (Settings → Secrets and variables → Actions → Variables) and re-run the workflow — or just open the page with `?server=<url>`.
 
 **Everything on Render (simplest).** Render → New → Blueprint → choose this repo. `render.yaml` creates one free web service that runs the game server and serves the client. The free plan sleeps after 15 minutes without visitors; the first visitor waits up to a minute while it wakes (the sign-in screen says so).
 

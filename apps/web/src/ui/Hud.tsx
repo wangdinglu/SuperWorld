@@ -11,6 +11,7 @@ import {
   personKey,
   ping,
   renderInfo,
+  soloMode,
   toggleMute,
 } from "../store.ts";
 import { Joystick } from "./Joystick.tsx";
@@ -40,7 +41,7 @@ export function Hud(props: { game: Game }) {
   return (
     <div class="hud">
       <div class="topbar">
-        <div class="pill strong">Plaza</div>
+        <div class="pill strong">{soloMode.value ? "Plaza · solo practice" : "Plaza"}</div>
         <button class="pill" onClick={() => setShowPeople(!showPeople)} aria-expanded={showPeople}>
           {people.value.length + 1} here
         </button>
@@ -84,7 +85,9 @@ export function Hud(props: { game: Game }) {
           <button
             class="secondary"
             onClick={() => {
-              void navigator.clipboard?.writeText(`${location.origin}/p/plaza`);
+              void navigator.clipboard?.writeText(
+                `${location.origin}${location.pathname}${location.search}`,
+              );
               alert("Link copied. Send it to a friend!");
             }}
           >

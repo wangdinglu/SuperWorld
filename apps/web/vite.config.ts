@@ -4,6 +4,8 @@ import { defineConfig } from "vite";
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 export default defineConfig({
+  // Relative asset paths, so the same build works at a domain root or a subfolder (GitHub Pages).
+  base: "./",
   server: {
     host: true,
     port: 5173,

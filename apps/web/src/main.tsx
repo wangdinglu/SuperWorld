@@ -10,12 +10,25 @@ import "./styles.css";
 const canvas = document.getElementById("stage") as HTMLCanvasElement;
 let game: Game | undefined;
 
-async function enter(name: string, colour: string): Promise<void> {
+class NoServerError extends Error {}
+
+async function startGame(token: string | null, name: string, colour: string): Promise<void> {
+  // The 3D engine, physics and netcode load only now, so the sign-in screen appears fast.
+  const { Game } = await import("./game.ts");
+  game ??= new Game(canvas);
+  await game.start(token, name, colour);
+}
+
+async function enter(name: string, colour: string, solo = false): Promise<void> {
   save("name", name);
   save("colour", colour);
   errorMessage.value = "";
   status.value = "connecting";
   try {
+    if (solo) {
+      await startGame(null, name, colour);
+      return;
+    }
     const res = await requestGuest(name, colour);
     if (!res.ok)
       throw new Error(
@@ -23,14 +36,21 @@ async function enter(name: string, colour: string): Promise<void> {
           `Server said ${res.status}`,
       );
     const guest = (await res.json()) as { token: string; name: string; colour: string };
-    // The 3D engine, physics and netcode load only now, so the sign-in screen appears fast.
-    const { Game } = await import("./game.ts");
-    game ??= new Game(canvas);
-    await game.start(guest.token, guest.name, guest.colour);
+    await startGame(guest.token, guest.name, guest.colour);
   } catch (err) {
-    console.error(err);
+    let failure = err;
+    if (err instanceof NoServerError) {
+      // A static host (e.g. GitHub Pages) with no game server: explore solo instead.
+      try {
+        await startGame(null, name, colour);
+        return;
+      } catch (soloErr) {
+        failure = soloErr;
+      }
+    }
+    console.error(failure);
     status.value = "login";
-    errorMessage.value = `Couldn't enter the plaza: ${err instanceof Error ? err.message : String(err)}. Is the server running?`;
+    errorMessage.value = `Couldn't enter the plaza: ${failure instanceof Error ? failure.message : String(failure)}. Please reload and try again.`;
   }
 }
 
@@ -43,8 +63,13 @@ async function requestGuest(name: string, colour: string): Promise<Response> {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ name, colour }),
       });
+      // 404/405 or an HTML page means there is no game server at this address.
+      const isJson = (res.headers.get("content-type") ?? "").includes("application/json");
+      if (res.status === 404 || res.status === 405 || res.status === 501 || (res.ok && !isJson))
+        throw new NoServerError();
       if (res.status !== 502 && res.status !== 503 && res.status !== 504) return res;
-    } catch {
+    } catch (err) {
+      if (err instanceof NoServerError) throw err;
       // Network error: the server may be starting.
     }
     if (attempt >= 12) throw new Error("the server didn't answer");
@@ -73,6 +98,7 @@ function App() {
       busy={status.value === "connecting"}
       error={errorMessage.value}
       onEnter={(n, c) => void enter(n, c)}
+      onSolo={(n, c) => void enter(n, c, true)}
     />
   );
 }
@@ -80,5 +106,5 @@ function App() {
 render(<App />, document.getElementById("ui")!);
 
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  navigator.serviceWorker.register("/sw.js").catch(() => {});
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
 }

@@ -1,5 +1,5 @@
 import { Callbacks, Client, Predict, type Room } from "@colyseus/sdk";
-import { initPhysics, PlaceWorld, steerTowards } from "@superworld/core";
+import { initPhysics, PlaceWorld, steerTowards, TICK_RATE } from "@superworld/core";
 import {
   type ChatBroadcast,
   type Emote,
@@ -42,6 +42,7 @@ import {
   ping,
   pushChat,
   renderInfo,
+  soloMode,
   status,
 } from "./store.ts";
 
@@ -86,7 +87,8 @@ export class Game {
 
   constructor(private readonly canvas: HTMLCanvasElement) {}
 
-  async start(token: string, name: string, colour: string): Promise<void> {
+  /** Starts the game. With no token, runs solo practice entirely in the browser (no server). */
+  async start(token: string | null, name: string, colour: string): Promise<void> {
     status.value = "connecting";
     this.tier = detectTier();
     const { renderer, backend } = await createRenderer(this.canvas, this.tier);
@@ -125,12 +127,21 @@ export class Game {
     await initPhysics();
     this.physics = PlaceWorld.build(scene, templates);
 
-    const client = new Client(serverUrl());
-    client.auth.token = token;
-    this.room = await client.joinOrCreate(ROOM.plaza, { protocol: PROTOCOL_VERSION, name, colour });
-    this.bindRoom();
-    await this.waitForSelf();
-    this.setupPrediction();
+    if (token) {
+      const client = new Client(serverUrl());
+      client.auth.token = token;
+      this.room = await client.joinOrCreate(ROOM.plaza, {
+        protocol: PROTOCOL_VERSION,
+        name,
+        colour,
+      });
+      this.myId = this.room.sessionId;
+      this.bindRoom();
+      await this.waitForSelf();
+      this.setupPrediction();
+    } else {
+      this.startSolo(name, colour);
+    }
 
     this.input = new InputController(this.canvas, {
       onTap: (x, y) => this.tapToMove(x, y),
@@ -147,7 +158,7 @@ export class Game {
     // Test hook: the authoritative position of my avatar, as the server last sent it.
     (window as unknown as { __superworld: unknown }).__superworld = {
       me: () => {
-        const p = this.room.state.players.get(this.room.sessionId) as Player | undefined;
+        const p = this.currentMe();
         return p ? { x: p.x, y: p.y, z: p.z } : undefined;
       },
       inputs: () => this.inputStats(),
@@ -156,8 +167,10 @@ export class Game {
     status.value = "playing";
     this.lastFrame = performance.now();
     this.renderer.setAnimationLoop((t) => this.frame(t));
-    setInterval(() => this.measurePing(), 3000);
-    setInterval(() => this.sendTelemetry(), 30_000);
+    if (!this.solo) {
+      setInterval(() => this.measurePing(), 3000);
+      setInterval(() => this.sendTelemetry(), 30_000);
+    }
   }
 
   // ---------- room ----------
@@ -176,7 +189,7 @@ export class Game {
         sessionId: m.sessionId,
         name: m.name,
         text: m.text,
-        mine: m.sessionId === this.room.sessionId,
+        mine: m.sessionId === this.myId,
       });
       if (view) {
         view.bubble.textContent = m.text;
@@ -196,14 +209,14 @@ export class Game {
   private waitForSelf(): Promise<void> {
     return new Promise((resolve) => {
       const check = () =>
-        this.room.state.players?.get(this.room.sessionId) ? resolve() : setTimeout(check, 30);
+        this.room.state.players?.get(this.myId) ? resolve() : setTimeout(check, 30);
       check();
     });
   }
 
   private setupPrediction(): void {
-    const me = this.room.state.players.get(this.room.sessionId) as Player;
-    const myId = this.room.sessionId;
+    const me = this.room.state.players.get(this.myId) as Player;
+    const myId = this.myId;
     this.physics.addAvatar(myId, me);
     this.predict = Predict.get(this.room, { mode: "lerp", delay: 100 });
     this.predict.attachAll("players", { x: "lerp", y: "lerp", z: "lerp" });
@@ -228,6 +241,69 @@ export class Game {
   private inputStats: () => { sent: number; acked: number } = () => ({ sent: 0, acked: 0 });
   private sendInput: (move: [number, number], run: boolean, jump: boolean) => void = () => {};
 
+  // ---------- solo practice (no server) ----------
+
+  private startSolo(name: string, colour: string): void {
+    this.solo = true;
+    soloMode.value = true;
+    this.myId = "solo";
+    const [x, y, z] = this.physics.spawnPosition(Math.random(), Math.random());
+    const me = { x, y, z, vy: 0, yaw: Math.PI, grounded: true, name, colour } as unknown as Player;
+    this.soloMe = me;
+    this.soloPrev = { x, y, z, yaw: Math.PI };
+    this.physics.addAvatar(this.myId, me);
+    this.addAvatar(this.myId, me);
+    pushChat({
+      sessionId: "",
+      name: "SuperWorld",
+      text: "Solo practice: you're exploring offline. Multiplayer needs the game server.",
+      mine: false,
+      system: true,
+    });
+    this.sendInput = (move, run, jump) => {
+      const p = this.soloMe!;
+      this.soloPrev = { x: p.x, y: p.y, z: p.z, yaw: p.yaw };
+      this.physics.stepAvatar(
+        this.myId,
+        p,
+        { moveX: move[0], moveZ: move[1], run, jump },
+        1 / TICK_RATE,
+      );
+      this.soloAlpha = 0;
+    };
+  }
+
+  private currentMe(): Player | undefined {
+    return this.solo ? this.soloMe : (this.room.state.players.get(this.myId) as Player | undefined);
+  }
+
+  /** Render value of a field: predicted/smoothed online, interpolated between fixed steps in solo. */
+  private value(p: Player, field: "x" | "y" | "z" | "yaw"): number {
+    if (!this.solo) return this.predict.value(p, field);
+    if (p !== this.soloMe) return p[field];
+    if (field === "yaw") return p.yaw;
+    const a = Math.min(1, this.soloAlpha);
+    return this.soloPrev[field] + (p[field] - this.soloPrev[field]) * a;
+  }
+
+  /** Fixed steps due this frame in solo mode (same cap as the networked path). */
+  private soloSteps(dt: number): number {
+    this.soloAccumulator += dt;
+    const step = 1 / TICK_RATE;
+    let n = Math.floor(this.soloAccumulator / step);
+    this.soloAccumulator -= n * step;
+    if (n > 5) n = 5;
+    this.soloAlpha = this.soloAccumulator / step;
+    return n;
+  }
+
+  private solo = false;
+  private myId = "";
+  private soloMe: Player | undefined;
+  private soloPrev = { x: 0, y: 0, z: 0, yaw: 0 };
+  private soloAccumulator = 0;
+  private soloAlpha = 0;
+
   private addAvatar(sessionId: string, player: Player): void {
     if (this.avatars.has(sessionId)) return;
     const mannequin = new Mannequin(player.colour, TIERS[this.tier].shadows === "realtime");
@@ -242,7 +318,7 @@ export class Game {
     const bubble = document.createElement("div");
     bubble.className = "bubble";
     tag.append(bubble, label);
-    if (sessionId === this.room.sessionId) tag.classList.add("me");
+    if (sessionId === this.myId) tag.classList.add("me");
     this.tagLayer.append(tag);
     this.avatars.set(sessionId, {
       player,
@@ -269,7 +345,7 @@ export class Game {
 
   private refreshPeople(): void {
     people.value = [...this.avatars.entries()]
-      .filter(([id]) => id !== this.room.sessionId)
+      .filter(([id]) => id !== this.myId)
       .map(([sessionId, v]) => ({ sessionId, name: v.player.name, colour: v.player.colour }));
   }
 
@@ -277,15 +353,31 @@ export class Game {
 
   sendChat(text: string): void {
     const trimmed = text.trim();
-    if (trimmed) this.room.send("chat", { text: trimmed.slice(0, 200) });
+    if (!trimmed) return;
+    if (this.solo) {
+      const me = this.avatars.get(this.myId);
+      pushChat({
+        sessionId: this.myId,
+        name: me?.player.name ?? "You",
+        text: trimmed.slice(0, 200),
+        mine: true,
+      });
+      if (me) {
+        me.bubble.textContent = trimmed.slice(0, 200);
+        me.bubbleUntil = performance.now() + BUBBLE_MS;
+      }
+      return;
+    }
+    this.room.send("chat", { text: trimmed.slice(0, 200) });
   }
 
   emote(emote: Emote): void {
-    this.room.send("emote", { emote });
+    if (this.solo) this.avatars.get(this.myId)?.mannequin.playEmote(emote);
+    else this.room.send("emote", { emote });
   }
 
   report(sessionId: string, reason: string): void {
-    this.room.send("report", { sessionId, reason });
+    if (!this.solo) this.room.send("report", { sessionId, reason });
   }
 
   toggleLevel(): void {
@@ -341,7 +433,7 @@ export class Game {
     const dt = Math.min(0.1, (now - this.lastFrame) / 1000);
     const frameMs = now - this.lastFrame;
     this.lastFrame = now;
-    const me = this.room.state.players.get(this.room.sessionId) as Player | undefined;
+    const me = this.currentMe();
 
     // 1. Input: one send per due fixed step; the reconciler predicts each one.
     const intent = this.input.intent();
@@ -349,7 +441,7 @@ export class Game {
       this.tapTarget = undefined;
       this.tapMarker.visible = false;
     }
-    const steps = this.predict.tick(now);
+    const steps = this.solo ? this.soloSteps(dt) : this.predict.tick(now);
     for (let i = 0; i < steps; i++) {
       let move: [number, number] = [0, 0];
       if (intent.active) {
@@ -359,8 +451,8 @@ export class Game {
           forward[1] * intent.y + right[1] * intent.x,
         ];
       } else if (this.tapTarget && me) {
-        const x = this.predict.value(me, "x");
-        const z = this.predict.value(me, "z");
+        const x = me.x;
+        const z = me.z;
         const s = steerTowards(x, z, this.tapTarget.x, this.tapTarget.z);
         move = [s.moveX, s.moveZ];
         if (s.arrived) {
@@ -374,15 +466,15 @@ export class Game {
     // 2. Avatars: predicted position for me, smoothed positions for everyone else.
     for (const [id, view] of this.avatars) {
       const p = view.player;
-      const x = this.predict.value(p, "x");
-      const y = this.predict.value(p, "y");
-      const z = this.predict.value(p, "z");
+      const x = this.value(p, "x");
+      const y = this.value(p, "y");
+      const z = this.value(p, "z");
       const pos = view.mannequin.root.position;
       pos.set(x, y, z);
       const moved = Math.hypot(x - view.lastPos.x, z - view.lastPos.z);
       view.speed += ((dt > 0 ? moved / dt : 0) - view.speed) * Math.min(1, dt * 10);
       view.lastPos.set(x, y, z);
-      const targetYaw = id === this.room.sessionId ? this.predict.value(p, "yaw") : p.yaw;
+      const targetYaw = id === this.myId ? this.value(p, "yaw") : p.yaw;
       let diff = targetYaw - view.yaw;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       view.yaw += diff * Math.min(1, dt * 12);
@@ -391,7 +483,7 @@ export class Game {
     }
 
     // 3. Camera, sun and overlays follow my avatar.
-    const mine = this.avatars.get(this.room.sessionId);
+    const mine = this.avatars.get(this.myId);
     if (mine) {
       this.rig.update(mine.mannequin.root.position, dt);
       this.sunTarget.copy(mine.mannequin.root.position);
@@ -443,7 +535,7 @@ export class Game {
   }
 
   private async measurePing(): Promise<void> {
-    if (!this.room) return;
+    if (this.solo || !this.room) return;
     const clock = (this.room as unknown as { clock?: { rtt?: () => number } }).clock;
     const rtt = clock?.rtt?.();
     if (typeof rtt === "number" && Number.isFinite(rtt)) ping.value = Math.round(rtt);

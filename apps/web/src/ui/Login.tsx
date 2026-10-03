@@ -17,6 +17,7 @@ export function Login(props: {
   busy: boolean;
   error: string;
   onEnter(name: string, colour: string): void;
+  onSolo(name: string, colour: string): void;
 }) {
   const [name, setName] = useState(load("name", ""));
   const [colour, setColour] = useState(
@@ -72,6 +73,14 @@ export function Login(props: {
         )}
         <button class="primary" type="submit" disabled={!valid || props.busy}>
           {props.busy ? "Entering…" : "Enter the plaza"}
+        </button>
+        <button
+          type="button"
+          class="secondary"
+          disabled={!valid || props.busy}
+          onClick={() => props.onSolo(name.trim(), colour)}
+        >
+          Practice solo (no server needed)
         </button>
         <p class="hint-small">
           WASD or tap to move · drag to look · M for the overview · Enter to chat

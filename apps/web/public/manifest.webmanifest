@@ -1,12 +1,12 @@
 {
   "name": "SuperWorld",
   "short_name": "SuperWorld",
-  "start_url": "/",
+  "start_url": "./",
   "display": "fullscreen",
   "orientation": "any",
   "background_color": "#0c111e",
   "theme_color": "#2c47d6",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
 }

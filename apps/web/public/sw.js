@@ -1,10 +1,12 @@
 // Minimal service worker: makes SuperWorld installable and keeps the app shell available offline.
 // Game state always comes from the server; only same-origin static files are cached.
-const CACHE = "superworld-shell-v1";
+const CACHE = "superworld-shell-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(["/", "/manifest.webmanifest", "/icon.svg"])),
+    caches
+      .open(CACHE)
+      .then((cache) => cache.addAll(["./", "./manifest.webmanifest", "./icon.svg"])),
   );
   self.skipWaiting();
 });
@@ -34,6 +36,6 @@ self.addEventListener("fetch", (event) => {
         caches.open(CACHE).then((cache) => cache.put(event.request, copy));
         return response;
       })
-      .catch(() => caches.match(event.request).then((r) => r ?? caches.match("/"))),
+      .catch(() => caches.match(event.request).then((r) => r ?? caches.match("./"))),
   );
 });
