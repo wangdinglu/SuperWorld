@@ -110,7 +110,7 @@ _Done when_ the plaza holds 30 fps on a mid-range phone with 50 players in the s
 **M1.7 — Staging and playtest**
 
 - [ ] Deploy the client and game server to staging (needs a hosting choice)
-- [ ] Shareable place links; telemetry for frame rate, tier, device and round-trip time
+- [x] Shareable place links (`/p/plaza`); telemetry for frame rate, tier, device and round-trip time in the server log (`client-telemetry`)
 - [ ] Playtest with friends on phones and laptops; triage the fix list
 
 **Gate 1 — Friends meet on phone and laptop**

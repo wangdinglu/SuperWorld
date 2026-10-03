@@ -11,6 +11,7 @@ import {
   Player,
   PROTOCOL_VERSION,
   ReportMessage,
+  TelemetryMessage,
   toCommand,
   type ChatBroadcast,
   type EmoteBroadcast,
@@ -48,6 +49,7 @@ export class PlazaRoom extends Room<{
   private readonly visible = new Map<string, Set<string>>();
   private readonly chatLimit = new RateLimiter(5, 10_000);
   private readonly emoteLimit = new RateLimiter(2, 2_000);
+  private readonly telemetryLimit = new RateLimiter(2, 20_000);
   private tickCount = 0;
   private stepMs = 0;
 
@@ -102,6 +104,19 @@ export class PlazaRoom extends Room<{
       if (!parsed.success || !this.emoteLimit.allow(client.sessionId)) return;
       const payload: EmoteBroadcast = { sessionId: client.sessionId, emote: parsed.data.emote };
       this.broadcast("emote", payload);
+    });
+
+    this.onMessage("telemetry", (client, message: unknown) => {
+      const parsed = TelemetryMessage.safeParse(message);
+      if (!parsed.success || !this.telemetryLimit.allow(client.sessionId)) return;
+      console.log(
+        JSON.stringify({
+          event: "client-telemetry",
+          room: this.roomId,
+          session: client.sessionId,
+          ...parsed.data,
+        }),
+      );
     });
 
     this.onMessage("report", (client, message: unknown) => {
@@ -162,6 +177,7 @@ export class PlazaRoom extends Room<{
     this.visible.delete(client.sessionId);
     this.chatLimit.forget(client.sessionId);
     this.emoteLimit.forget(client.sessionId);
+    this.telemetryLimit.forget(client.sessionId);
     this.updateInterest();
   }
 

@@ -53,3 +53,11 @@ content/world     the world, templates and plaza scene, as data
 **Everything on Render (simplest).** Render → New → Blueprint → choose this repo. `render.yaml` creates one free web service that runs the game server and serves the client. The free plan sleeps after 15 minutes without visitors; the first visitor waits up to a minute while it wakes (the sign-in screen says so).
 
 **Client on Cloudflare Pages (optional, faster worldwide).** Create a Pages project from this repo with build command `pnpm --filter @superworld/web build`, output directory `apps/web/dist`, and the environment variable `VITE_SERVER_URL` set to your Render URL. Then set `ALLOWED_ORIGINS` on Render to your Pages URL.
+
+## Reading a playtest
+
+The server log (Render → your service → Logs) has one JSON line per event:
+
+- `client-telemetry`: every 30 s per player — frame rate, quality tier, WebGPU or WebGL2, ping, phone/tablet/desktop, screen size.
+- `room-stats`: every 30 s per room — players and average server step time (budget: 33 ms).
+- `report`: a player pressed Report in the people panel.

@@ -85,6 +85,17 @@ export const ReportMessage = z.object({
   reason: z.string().max(200),
 });
 
+/** Client → server, every 30 s: how the game runs on this device (for playtests and tier tuning). */
+export const TelemetryMessage = z.object({
+  fps: z.number().min(0).max(1000),
+  tier: z.enum(["low", "medium", "high"]),
+  backend: z.enum(["webgpu", "webgl2"]),
+  rttMs: z.number().min(0).max(60_000),
+  device: z.enum(["phone", "tablet", "desktop"]),
+  viewport: z.tuple([z.number().int().min(0).max(20_000), z.number().int().min(0).max(20_000)]),
+});
+export type TelemetryMessage = z.infer<typeof TelemetryMessage>;
+
 /** Server → client broadcasts. */
 export interface ChatBroadcast {
   sessionId: string;

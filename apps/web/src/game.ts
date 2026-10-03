@@ -157,6 +157,7 @@ export class Game {
     this.lastFrame = performance.now();
     this.renderer.setAnimationLoop((t) => this.frame(t));
     setInterval(() => this.measurePing(), 3000);
+    setInterval(() => this.sendTelemetry(), 30_000);
   }
 
   // ---------- room ----------
@@ -308,7 +309,35 @@ export class Game {
     this.tapMarker.visible = true;
   }
 
+  private framesSinceReport = 0;
+  private lastReport = performance.now();
+
+  /** Playtest telemetry: frame rate, tier, backend, ping and device class. No personal data. */
+  private sendTelemetry(): void {
+    const now = performance.now();
+    const fps = (this.framesSinceReport * 1000) / Math.max(1, now - this.lastReport);
+    this.framesSinceReport = 0;
+    this.lastReport = now;
+    const info = renderInfo.value;
+    if (!info || document.hidden) return;
+    const touch = matchMedia("(pointer: coarse)").matches;
+    const device = !touch
+      ? "desktop"
+      : Math.min(innerWidth, innerHeight) >= 700
+        ? "tablet"
+        : "phone";
+    this.room.send("telemetry", {
+      fps: Math.round(fps * 10) / 10,
+      tier: info.tier,
+      backend: info.backend,
+      rttMs: ping.value,
+      device,
+      viewport: [innerWidth, innerHeight],
+    });
+  }
+
   private frame(now: number): void {
+    this.framesSinceReport++;
     const dt = Math.min(0.1, (now - this.lastFrame) / 1000);
     const frameMs = now - this.lastFrame;
     this.lastFrame = now;

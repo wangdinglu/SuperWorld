@@ -86,6 +86,31 @@ describe("plaza room", () => {
     expect(received[0]).toMatchObject({ name: "Ada", text: "hello **** world" });
   });
 
+  it("accepts valid telemetry and ignores malformed telemetry", async () => {
+    const room = rooms[0]!;
+    const logs: string[] = [];
+    const original = console.log;
+    console.log = (line: string) => logs.push(String(line));
+    try {
+      room.send("telemetry", {
+        fps: 58.5,
+        tier: "high",
+        backend: "webgl2",
+        rttMs: 40,
+        device: "desktop",
+        viewport: [1280, 720],
+      });
+      room.send("telemetry", { fps: "fast" });
+      await until(() => logs.some((l) => l.includes("client-telemetry")));
+      await sleep(100);
+    } finally {
+      console.log = original;
+    }
+    const entries = logs.filter((l) => l.includes("client-telemetry")).map((l) => JSON.parse(l));
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ fps: 58.5, tier: "high", device: "desktop" });
+  });
+
   it("rejects clients without a valid token or with an old protocol", async () => {
     const noToken = new Client(base);
     await expect(
