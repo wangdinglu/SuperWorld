@@ -1,0 +1,59 @@
+import { useState } from "preact/hooks";
+import { NAME_MAX } from "@superworld/protocol";
+import { load } from "../storage.ts";
+
+export const COLOURS = ["#f2785c", "#f2ae45", "#5fae6b", "#41c7b6", "#6c8cff", "#ae92ff", "#f57cc0", "#4a5160"];
+
+export function Login(props: { busy: boolean; error: string; onEnter(name: string, colour: string): void }) {
+  const [name, setName] = useState(load("name", ""));
+  const [colour, setColour] = useState(load("colour", COLOURS[Math.floor(Math.random() * COLOURS.length)]!));
+  const valid = name.trim().length > 0;
+
+  return (
+    <div class="login-wrap">
+      <form
+        class="card login"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (valid && !props.busy) props.onEnter(name.trim(), colour);
+        }}
+      >
+        <h1>SuperWorld</h1>
+        <p class="lead">One shared world, from a link. Pick a name and a colour, then step into the plaza.</p>
+        <label class="field">
+          <span>Name</span>
+          <input
+            value={name}
+            maxLength={NAME_MAX}
+            autoComplete="nickname"
+            placeholder="Your name"
+            onInput={(e) => setName((e.target as HTMLInputElement).value)}
+            autoFocus
+          />
+        </label>
+        <div class="field">
+          <span id="colour-label">Colour</span>
+          <div class="swatches" role="radiogroup" aria-labelledby="colour-label">
+            {COLOURS.map((c) => (
+              <button
+                type="button"
+                key={c}
+                role="radio"
+                aria-checked={c === colour}
+                aria-label={c}
+                class="swatch"
+                style={{ background: c }}
+                onClick={() => setColour(c)}
+              />
+            ))}
+          </div>
+        </div>
+        {props.error && <p class="error" role="alert">{props.error}</p>}
+        <button class="primary" type="submit" disabled={!valid || props.busy}>
+          {props.busy ? "Entering…" : "Enter the plaza"}
+        </button>
+        <p class="hint-small">WASD or tap to move · drag to look · M for the overview · Enter to chat</p>
+      </form>
+    </div>
+  );
+}

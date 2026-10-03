@@ -1,0 +1,186 @@
+{
+  "schema": "superworld.templates/1",
+  "templates": [
+    {
+      "id": "prim/paving",
+      "name": "Paving",
+      "parts": [
+        {
+          "shape": "cylinder",
+          "radius": 21,
+          "height": 0.04,
+          "at": [0, 0.02, 0],
+          "colour": "stone"
+        }
+      ]
+    },
+    {
+      "id": "prim/fountain",
+      "name": "Fountain",
+      "parts": [
+        {
+          "shape": "cylinder",
+          "radius": 5,
+          "height": 0.8,
+          "at": [0, 0.4, 0],
+          "colour": "stone",
+          "solid": true
+        },
+        {
+          "shape": "cylinder",
+          "radius": 4.6,
+          "height": 0.1,
+          "at": [0, 0.76, 0],
+          "colour": "water"
+        },
+        {
+          "shape": "cylinder",
+          "radius": 0.6,
+          "height": 2.4,
+          "at": [0, 2, 0],
+          "colour": "stone",
+          "solid": true
+        },
+        {
+          "shape": "cylinder",
+          "radius": 1.7,
+          "height": 0.3,
+          "at": [0, 3.2, 0],
+          "colour": "stone"
+        },
+        {
+          "shape": "sphere",
+          "radius": 0.45,
+          "at": [0, 3.75, 0],
+          "colour": "water",
+          "emissive": true
+        }
+      ]
+    },
+    {
+      "id": "prim/bench",
+      "name": "Bench",
+      "parts": [
+        {
+          "shape": "box",
+          "size": [2.2, 0.14, 0.6],
+          "at": [0, 0.47, 0],
+          "colour": "wood",
+          "solid": true
+        },
+        {
+          "shape": "box",
+          "size": [2.2, 0.55, 0.1],
+          "at": [0, 0.82, -0.27],
+          "colour": "wood"
+        },
+        {
+          "shape": "box",
+          "size": [0.1, 0.42, 0.5],
+          "at": [-0.9, 0.2, 0],
+          "colour": "metal"
+        },
+        {
+          "shape": "box",
+          "size": [0.1, 0.42, 0.5],
+          "at": [0.9, 0.2, 0],
+          "colour": "metal"
+        }
+      ]
+    },
+    {
+      "id": "prim/tree",
+      "name": "Tree",
+      "parts": [
+        {
+          "shape": "cylinder",
+          "radius": 0.25,
+          "height": 2,
+          "at": [0, 1, 0],
+          "colour": "wood",
+          "solid": true
+        },
+        {
+          "shape": "cone",
+          "radius": 1.7,
+          "height": 3.4,
+          "at": [0, 3.6, 0],
+          "colour": "leaf"
+        }
+      ]
+    },
+    {
+      "id": "prim/lamp",
+      "name": "Lamp post",
+      "parts": [
+        {
+          "shape": "cylinder",
+          "radius": 0.08,
+          "height": 3.6,
+          "at": [0, 1.8, 0],
+          "colour": "metal",
+          "solid": true
+        },
+        {
+          "shape": "sphere",
+          "radius": 0.3,
+          "at": [0, 3.75, 0],
+          "colour": "light",
+          "emissive": true
+        }
+      ]
+    },
+    {
+      "id": "prim/planter",
+      "name": "Planter",
+      "parts": [
+        {
+          "shape": "box",
+          "size": [3, 0.6, 3],
+          "at": [0, 0.3, 0],
+          "colour": "stone",
+          "solid": true
+        },
+        {
+          "shape": "sphere",
+          "radius": 1.1,
+          "at": [0, 1.2, 0],
+          "colour": "leaf"
+        }
+      ]
+    },
+    {
+      "id": "prim/portal-arch",
+      "name": "Portal arch",
+      "parts": [
+        {
+          "shape": "box",
+          "size": [0.8, 5, 0.8],
+          "at": [-2.2, 2.5, 0],
+          "colour": "stone",
+          "solid": true
+        },
+        {
+          "shape": "box",
+          "size": [0.8, 5, 0.8],
+          "at": [2.2, 2.5, 0],
+          "colour": "stone",
+          "solid": true
+        },
+        {
+          "shape": "box",
+          "size": [5.2, 0.8, 0.8],
+          "at": [0, 5.4, 0],
+          "colour": "stone"
+        },
+        {
+          "shape": "box",
+          "size": [3.6, 4.6, 0.08],
+          "at": [0, 2.3, 0],
+          "colour": "accent",
+          "emissive": true
+        }
+      ]
+    }
+  ]
+}

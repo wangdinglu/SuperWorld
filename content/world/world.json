@@ -1,0 +1,58 @@
+{
+  "schema": "superworld.world/1",
+  "name": "SuperWorld",
+  "spawnPlace": "plaza",
+  "defaultStyle": {
+    "form": "smooth",
+    "surface": "soft",
+    "colour": "meadow",
+    "light": "noon",
+    "atmosphere": "clear",
+    "postEffects": [],
+    "motion": "calm",
+    "sound": "plaza",
+    "look2d": "flat"
+  },
+  "places": [
+    {
+      "id": "plaza",
+      "name": "Plaza",
+      "kind": "plaza",
+      "scene": "plaza.scene.json",
+      "atlas": [50, 50],
+      "phase": 1
+    },
+    {
+      "id": "arena",
+      "name": "Arena",
+      "kind": "arena",
+      "scene": null,
+      "atlas": [20, 18],
+      "phase": 3
+    },
+    {
+      "id": "culture",
+      "name": "Culture district",
+      "kind": "district",
+      "scene": null,
+      "atlas": [80, 18],
+      "phase": 3
+    },
+    {
+      "id": "spaces",
+      "name": "Private spaces",
+      "kind": "space",
+      "scene": null,
+      "atlas": [20, 82],
+      "phase": 2
+    },
+    {
+      "id": "studio",
+      "name": "Creator studio",
+      "kind": "studio",
+      "scene": null,
+      "atlas": [80, 82],
+      "phase": 2
+    }
+  ]
+}

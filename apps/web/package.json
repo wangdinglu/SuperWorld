@@ -1,0 +1,27 @@
+{
+  "name": "@superworld/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@colyseus/sdk": "^0.18.4",
+    "@preact/signals": "^2.11.3",
+    "@superworld/core": "workspace:*",
+    "@superworld/protocol": "workspace:*",
+    "@superworld/render": "workspace:*",
+    "@superworld/schema": "workspace:*",
+    "@superworld/style": "workspace:*",
+    "preact": "^11.0.0",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0",
+    "vite": "^8.3.2"
+  }
+}
