@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { defineRoom, defineServer } from "colyseus";
+import { defineRoom, defineServer } from "@colyseus/core";
+import { WebSocketTransport } from "@colyseus/ws-transport";
 import { JoinOptions, ROOM } from "@superworld/protocol";
 import type { Content } from "./content.ts";
 import { issueGuestToken } from "./guest.ts";
@@ -18,6 +19,7 @@ export function createServer(content: Content) {
     .filter(Boolean);
 
   return defineServer({
+    transport: new WebSocketTransport(),
     rooms: {
       [ROOM.plaza]: defineRoom(PlazaRoom, { content, placeId: content.world.spawnPlace }),
     },
