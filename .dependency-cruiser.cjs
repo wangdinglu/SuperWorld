@@ -33,6 +33,12 @@ module.exports = {
       to: { path: "^packages/(?!schema/|core/|protocol/)" },
     },
     {
+      name: "sdk-depends-on-schema-and-style",
+      severity: "error",
+      from: { path: "^packages/sdk/" },
+      to: { path: "^packages/(?!schema/|style/|sdk/)" },
+    },
+    {
       name: "db-only-in-server-apps",
       severity: "error",
       from: { pathNot: "^(apps/server|packages/db)/" },

@@ -211,6 +211,18 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
 
+  packages/sdk:
+    dependencies:
+      '@superworld/schema':
+        specifier: workspace:*
+        version: link:../schema
+      '@superworld/style':
+        specifier: workspace:*
+        version: link:../style
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+
   packages/style:
     dependencies:
       '@superworld/schema':
