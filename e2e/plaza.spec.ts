@@ -4,7 +4,8 @@ async function enter(page: Page, name: string, query = ""): Promise<void> {
   await page.goto(`/${query}`);
   await page.getByPlaceholder("Your name").fill(name);
   await page.getByRole("button", { name: "Enter the plaza" }).click();
-  await expect(page.locator(".hud")).toBeVisible({ timeout: 30_000 });
+  // Generous: CI renders in software and compiles shaders on first load.
+  await expect(page.locator(".hud")).toBeVisible({ timeout: 60_000 });
 }
 
 test("a laptop and a phone meet in the plaza", async ({ browser }) => {

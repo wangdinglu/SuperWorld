@@ -6,11 +6,14 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
 
 export default defineConfig({
   testDir: "e2e",
-  timeout: 60_000,
+  timeout: 120_000,
+  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   retries: 0,
   // One game server and software rendering: run tests one at a time.
   workers: 1,
   use: {
+    screenshot: "only-on-failure",
+    trace: "retain-on-failure",
     baseURL: `http://localhost:${port}`,
     launchOptions: {
       ...(executablePath ? { executablePath } : {}),
