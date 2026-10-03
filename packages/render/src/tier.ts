@@ -13,9 +13,30 @@ export interface TierSettings {
 
 /** Starting targets from docs/ARCHITECTURE.md §8, tuned in testing. */
 export const TIERS: Record<Tier, TierSettings> = {
-  low: { pixelRatioCap: 1, shadows: "blob", fullDetailAvatars: 12, farAvatarDistance: 45, frameBudgetMs: 1000 / 30, antialias: false },
-  medium: { pixelRatioCap: 1.5, shadows: "blob", fullDetailAvatars: 24, farAvatarDistance: 70, frameBudgetMs: 1000 / 45, antialias: true },
-  high: { pixelRatioCap: 2, shadows: "realtime", fullDetailAvatars: 40, farAvatarDistance: 120, frameBudgetMs: 1000 / 60, antialias: true },
+  low: {
+    pixelRatioCap: 1,
+    shadows: "blob",
+    fullDetailAvatars: 12,
+    farAvatarDistance: 45,
+    frameBudgetMs: 1000 / 30,
+    antialias: false,
+  },
+  medium: {
+    pixelRatioCap: 1.5,
+    shadows: "blob",
+    fullDetailAvatars: 24,
+    farAvatarDistance: 70,
+    frameBudgetMs: 1000 / 45,
+    antialias: true,
+  },
+  high: {
+    pixelRatioCap: 2,
+    shadows: "realtime",
+    fullDetailAvatars: 40,
+    farAvatarDistance: 120,
+    frameBudgetMs: 1000 / 60,
+    antialias: true,
+  },
 };
 
 const ORDER: Tier[] = ["low", "medium", "high"];

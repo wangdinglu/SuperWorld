@@ -6,7 +6,12 @@ const EMOTE_SECONDS: Record<MannequinEmote, number> = { wave: 2.4, dance: 4, che
 
 const skinMaterial = new THREE.MeshLambertMaterial({ color: "#f1d3b8" });
 const darkMaterial = new THREE.MeshLambertMaterial({ color: "#2b2f3a" });
-const shadowMaterial = new THREE.MeshBasicMaterial({ color: "#000000", transparent: true, opacity: 0.22, depthWrite: false });
+const shadowMaterial = new THREE.MeshBasicMaterial({
+  color: "#000000",
+  transparent: true,
+  opacity: 0.22,
+  depthWrite: false,
+});
 const geo = {
   limb: new THREE.CapsuleGeometry(0.09, 0.5, 4, 8).translate(0, -0.3, 0),
   leg: new THREE.CapsuleGeometry(0.11, 0.55, 4, 8).translate(0, -0.36, 0),

@@ -55,7 +55,11 @@ export class CameraRig {
     this.altitude += (this.targetAltitude - this.altitude) * k;
     const t = this.altitude * this.altitude * (3 - 2 * this.altitude);
     const distance = THREE.MathUtils.lerp(WALK.distance, OVERVIEW.distance, t);
-    const pitch = THREE.MathUtils.clamp(THREE.MathUtils.lerp(WALK.pitch + this.pitchOffset, OVERVIEW.pitch, t), PITCH_MIN, PITCH_MAX);
+    const pitch = THREE.MathUtils.clamp(
+      THREE.MathUtils.lerp(WALK.pitch + this.pitchOffset, OVERVIEW.pitch, t),
+      PITCH_MIN,
+      PITCH_MAX,
+    );
     const lookHeight = THREE.MathUtils.lerp(WALK.lookHeight, OVERVIEW.lookHeight, t);
 
     const goal = new THREE.Vector3(target.x, target.y + lookHeight, target.z);

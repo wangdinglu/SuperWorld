@@ -1,0 +1,21 @@
+# Render Blueprint: one free web service that runs the game server and serves the web client.
+# Render → New → Blueprint → pick this repo. The free plan sleeps after 15 minutes without visitors.
+services:
+  - type: web
+    name: superworld
+    runtime: node
+    plan: free
+    branch: master
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: GUEST_TOKEN_SECRET
+        generateValue: true
+      # Comma-separated origins allowed to call the API, e.g. your Cloudflare Pages URL. Empty = any origin.
+      - key: ALLOWED_ORIGINS
+        value: ""

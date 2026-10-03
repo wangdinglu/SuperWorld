@@ -28,20 +28,36 @@ test("a laptop and a phone meet in the plaza", async ({ browser }) => {
   await laptop.keyboard.press("Enter");
   await laptop.getByPlaceholder("Say something…").fill("hello from the laptop");
   await laptop.keyboard.press("Enter");
-  await expect(phone.locator(".chatlog")).toContainText("hello from the laptop", { timeout: 10_000 });
+  await expect(phone.locator(".chatlog")).toContainText("hello from the laptop", {
+    timeout: 10_000,
+  });
 
   await phoneContext.close();
+  await laptop.close();
 });
 
 test("walking moves the avatar on the server", async ({ browser }) => {
   // Headless Chromium renders in software; a small low-tier view keeps the frame rate usable.
   const page = await browser.newPage({ viewport: { width: 360, height: 240 } });
   await enter(page, "Walker", "?tier=low");
-  const before = await page.evaluate(() => (window as unknown as { __superworld: { me(): { x: number; z: number } } }).__superworld.me());
+  const before = await page.evaluate(() =>
+    (window as unknown as { __superworld: { me(): { x: number; z: number } } }).__superworld.me(),
+  );
   await page.keyboard.down("KeyW");
   await page.waitForTimeout(3000);
   await page.keyboard.up("KeyW");
   await page.waitForTimeout(500);
-  const after = await page.evaluate(() => (window as unknown as { __superworld: { me(): { x: number; z: number } } }).__superworld.me());
-  expect(Math.hypot(after.x - before.x, after.z - before.z)).toBeGreaterThan(0.5);
+  const after = await page.evaluate(() =>
+    (window as unknown as { __superworld: { me(): { x: number; z: number } } }).__superworld.me(),
+  );
+  const stats = await page.evaluate(() =>
+    (
+      window as unknown as { __superworld: { inputs(): unknown; fps?: () => number } }
+    ).__superworld.inputs(),
+  );
+  const focus = await page.evaluate(() => document.activeElement?.tagName);
+  expect(
+    Math.hypot(after.x - before.x, after.z - before.z),
+    `inputs ${JSON.stringify(stats)}, focus ${focus}`,
+  ).toBeGreaterThan(0.5);
 });

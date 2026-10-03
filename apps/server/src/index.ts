@@ -1,7 +1,9 @@
 import { loadContent } from "./content.ts";
 import { createServer } from "./app.ts";
+import { assertGuestSecret } from "./guest.ts";
 
 const port = Number(process.env.PORT ?? 2567);
+assertGuestSecret();
 const content = loadContent();
 const server = createServer(content);
 await server.listen(port, "0.0.0.0");

@@ -32,6 +32,7 @@ const PATCH_RATE_HZ = 15;
 /** Recompute who sees whom every N ticks. */
 const INTEREST_EVERY_TICKS = 5;
 const RECONNECT_SECONDS = 20;
+const STATS_EVERY_TICKS = TICK_RATE * 30;
 
 export class PlazaRoom extends Room<{
   state: PlaceState;
@@ -48,6 +49,7 @@ export class PlazaRoom extends Room<{
   private readonly chatLimit = new RateLimiter(5, 10_000);
   private readonly emoteLimit = new RateLimiter(2, 2_000);
   private tickCount = 0;
+  private stepMs = 0;
 
   override async onCreate(options: PlazaRoomOptions): Promise<void> {
     const scene = options.content.scenes[options.placeId];
@@ -60,12 +62,26 @@ export class PlazaRoom extends Room<{
     this.setMetadata({ place: scene.place });
 
     this.setFixedTimestep((ctx) => {
+      const started = performance.now();
       for (const [sessionId, player] of this.state.players) {
         for (const input of this.inputs.get(sessionId).take(MAX_INPUTS_PER_TICK)) {
           this.world.stepAvatar(sessionId, player, toCommand(input), ctx.dt);
         }
       }
       if (++this.tickCount % INTEREST_EVERY_TICKS === 0) this.updateInterest();
+      this.stepMs += performance.now() - started;
+      if (this.tickCount % STATS_EVERY_TICKS === 0) {
+        // Telemetry: average step time and load, for the 50-player budget in docs/PROCESS_PLAN.md (M1.6).
+        console.log(
+          JSON.stringify({
+            event: "room-stats",
+            room: this.roomId,
+            players: this.state.players.size,
+            avgStepMs: +(this.stepMs / STATS_EVERY_TICKS).toFixed(3),
+          }),
+        );
+        this.stepMs = 0;
+      }
     }, TICK_RATE);
 
     this.onMessage("chat", (client, message: unknown) => {

@@ -108,7 +108,12 @@ export class Game {
 
     this.tapMarker = new THREE.Mesh(
       new THREE.RingGeometry(0.35, 0.5, 24).rotateX(-Math.PI / 2),
-      new THREE.MeshBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.85, depthWrite: false }),
+      new THREE.MeshBasicMaterial({
+        color: "#ffffff",
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false,
+      }),
     );
     this.tapMarker.visible = false;
     this.three.add(this.tapMarker);
@@ -158,13 +163,20 @@ export class Game {
 
   private bindRoom(): void {
     const callbacks = Callbacks.get(this.room);
-    callbacks.onAdd("players", (player, sessionId) => this.addAvatar(String(sessionId), player as Player));
+    callbacks.onAdd("players", (player, sessionId) =>
+      this.addAvatar(String(sessionId), player as Player),
+    );
     callbacks.onRemove("players", (_player, sessionId) => this.removeAvatar(String(sessionId)));
 
     this.room.onMessage("chat", (m: ChatBroadcast) => {
       const view = this.avatars.get(m.sessionId);
       if (view && muted.value.includes(personKey(view.player))) return;
-      pushChat({ sessionId: m.sessionId, name: m.name, text: m.text, mine: m.sessionId === this.room.sessionId });
+      pushChat({
+        sessionId: m.sessionId,
+        name: m.name,
+        text: m.text,
+        mine: m.sessionId === this.room.sessionId,
+      });
       if (view) {
         view.bubble.textContent = m.text;
         view.bubbleUntil = performance.now() + BUBBLE_MS;
@@ -182,7 +194,8 @@ export class Game {
 
   private waitForSelf(): Promise<void> {
     return new Promise((resolve) => {
-      const check = () => (this.room.state.players?.get(this.room.sessionId) ? resolve() : setTimeout(check, 30));
+      const check = () =>
+        this.room.state.players?.get(this.room.sessionId) ? resolve() : setTimeout(check, 30);
       check();
     });
   }
@@ -197,7 +210,8 @@ export class Game {
     this.predict.reconciler(me, {
       input,
       fields: [...PREDICTED_FIELDS],
-      step: (ctx, state, command) => this.physics.stepAvatar(myId, state, toCommand(command), ctx.dt),
+      step: (ctx, state, command) =>
+        this.physics.stepAvatar(myId, state, toCommand(command), ctx.dt),
       smoothMs: 80,
     });
     this.inputStats = () => ({ sent: input.sentCount, acked: input.lastProcessed });
@@ -230,8 +244,14 @@ export class Game {
     if (sessionId === this.room.sessionId) tag.classList.add("me");
     this.tagLayer.append(tag);
     this.avatars.set(sessionId, {
-      player, mannequin, tag, bubble, bubbleUntil: 0,
-      lastPos: new THREE.Vector3(player.x, player.y, player.z), speed: 0, yaw: player.yaw,
+      player,
+      mannequin,
+      tag,
+      bubble,
+      bubbleUntil: 0,
+      lastPos: new THREE.Vector3(player.x, player.y, player.z),
+      speed: 0,
+      yaw: player.yaw,
     });
     this.refreshPeople();
   }
@@ -305,7 +325,10 @@ export class Game {
       let move: [number, number] = [0, 0];
       if (intent.active) {
         const { forward, right } = this.rig.groundAxes();
-        move = [forward[0] * intent.y + right[0] * intent.x, forward[1] * intent.y + right[1] * intent.x];
+        move = [
+          forward[0] * intent.y + right[0] * intent.x,
+          forward[1] * intent.y + right[1] * intent.x,
+        ];
       } else if (this.tapTarget && me) {
         const x = this.predict.value(me, "x");
         const z = this.predict.value(me, "z");
@@ -364,7 +387,12 @@ export class Game {
       const dist = v.distanceTo(cam.position);
       const isMuted = muted.value.includes(personKey(view.player));
       v.project(cam);
-      const visible = v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1 && (overview || dist < NAME_TAG_DISTANCE) && !isMuted;
+      const visible =
+        v.z < 1 &&
+        Math.abs(v.x) < 1.1 &&
+        Math.abs(v.y) < 1.1 &&
+        (overview || dist < NAME_TAG_DISTANCE) &&
+        !isMuted;
       view.tag.style.display = visible ? "" : "none";
       if (!visible) continue;
       const sx = (v.x * 0.5 + 0.5) * innerWidth;

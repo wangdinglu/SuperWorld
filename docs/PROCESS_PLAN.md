@@ -1,7 +1,9 @@
 # SuperWorld — Process Plan
 
 > **Status:** draft for review · 3 Oct 2026
-> How we build [ARCHITECTURE.md](ARCHITECTURE.md), step by step. Every phase ships something playable and ends at a gate from the [plan](plan/index.html). Nothing starts until you confirm.
+> How we build [ARCHITECTURE.md](ARCHITECTURE.md), step by step. Every phase ships something playable and ends at a gate from the [plan](plan/index.html).
+>
+> **Status (3 Oct 2026):** M0 to M1.6 are done on the branch `phase-1-walkable-world`. Next is M1.7: deploy to Render's free tier and playtest with friends.
 
 ## At a glance
 
@@ -28,12 +30,12 @@
 
 **M0 — Repository foundations**
 
-- [ ] pnpm workspace: `apps/web`, `apps/server`, `packages/{core,schema,protocol,style,render}`
-- [ ] TypeScript 6 strict configs; `core` has no DOM library and no Node types
-- [ ] ESLint, typescript-eslint, Prettier, and dependency-cruiser rules for package boundaries
-- [ ] Vitest and Playwright, with one smoke test each
-- [ ] GitHub Actions: lint, typecheck, test, build
-- [ ] README with run instructions; move the plan page to `docs/plan/`; ADR template and the first ADRs from the architecture doc
+- [x] pnpm workspace: `apps/web`, `apps/server`, `packages/{core,schema,protocol,style,render}`
+- [x] TypeScript 6 strict configs; `core` has no DOM library and no Node types
+- [x] ESLint, typescript-eslint, Prettier, and dependency-cruiser rules for package boundaries
+- [x] Vitest and Playwright, with one smoke test each
+- [x] GitHub Actions: lint, typecheck, test, build
+- [x] README with run instructions; move the plan page to `docs/plan/`; ADR template and the first ADRs from the architecture doc
 
 _Done when_ a fresh clone runs `pnpm install && pnpm dev` and shows a page from the client connected to the server, and `pnpm check` passes locally and in CI.
 
@@ -53,55 +55,55 @@ flowchart LR
 
 **M1.1 — Shared core**
 
-- [ ] Fixed-step loop at 30 Hz, with the clock and randomness passed in
-- [ ] Rapier world built from collider data; character controller for walking, running, jumping, slopes and steps
-- [ ] Movement intents: direction (stick, keys) and target point (tap to move, straight steering with wall sliding)
-- [ ] Tests for movement and collisions, plus a replay test: same inputs, same positions
+- [x] Fixed-step loop at 30 Hz, with the clock and randomness passed in
+- [x] Rapier world built from collider data; character controller for walking, running, jumping, slopes and steps
+- [x] Movement intents: direction (stick, keys) and target point (tap to move, straight steering with wall sliding)
+- [x] Tests for movement and collisions, plus a replay test: same inputs, same positions
 
 _Done when_ a headless test walks an avatar around the plaza's colliders and replays it exactly.
 
 **M1.2 — Content as data**
 
-- [ ] `schema` v1 in Zod: World, Scene, Template (primitive shapes), Instance, StyleProfile, with JSON Schema export
-- [ ] `content/world/world.json` and `plaza.scene.json`, built from primitive templates: ground, fountain, benches, trees, lamps, portal arches
-- [ ] `pnpm validate:content`, also run in CI
-- [ ] Loaders that turn one scene file into both core colliders (server and client) and a three.js scene (client)
+- [x] `schema` v1 in Zod: World, Scene, Template (primitive shapes), Instance, StyleProfile, with JSON Schema export
+- [x] `content/world/world.json` and `plaza.scene.json`, built from primitive templates: ground, fountain, benches, trees, lamps, portal arches
+- [x] `pnpm validate:content`, also run in CI
+- [x] Loaders that turn one scene file into both core colliders (server and client) and a three.js scene (client)
 
 _Done when_ editing `plaza.scene.json` changes both what you see and what you bump into, with no code change.
 
 **M1.3 — Renderer and camera**
 
-- [ ] `WebGPURenderer` with WebGL2 fallback; tier detection and the frame-time governor
-- [ ] `style` resolver v1 and its mapping to light, sky, palette and surface; outline post-effect on the high tier
-- [ ] Procedural mannequin avatar: idle, walk, run, jump and four emotes, coloured per player
-- [ ] Camera rig: walk ↔ overview with continuous zoom (wheel, pinch, `M`); click or tap to move in overview
+- [x] `WebGPURenderer` with WebGL2 fallback; tier detection and the frame-time governor
+- [x] `style` resolver v1 and its mapping to light, sky, palette and surface (the outline post-effect moves to M2.9, see ADR-004)
+- [x] Procedural mannequin avatar: idle, walk, run, jump and four emotes, coloured per player
+- [x] Camera rig: walk ↔ overview with continuous zoom (wheel, pinch, `M`); click or tap to move in overview
 
 _Done when_ one player can walk and tap-to-move around the plaza at 60 fps on desktop and 30 fps on the low tier in device emulation (real phones come in M1.6).
 
 **M1.4 — Multiplayer**
 
-- [ ] Colyseus 0.18 `PlazaRoom` running the core with `setFixedTimestep` (30 Hz) and `defineInput`
-- [ ] Client prediction with `Predict` and the core step; interpolation for other players
-- [ ] Nearby-only updates with `StateView` and a grid; a new shard at 50 players via `joinOrCreate`
-- [ ] Protocol version check; reconnect window
-- [ ] Room tests with `@colyseus/testing`; a Playwright test where two browsers see each other move
+- [x] Colyseus 0.18 `PlazaRoom` running the core with `setFixedTimestep` (30 Hz) and `defineInput`
+- [x] Client prediction with `Predict` and the core step; interpolation for other players
+- [x] Nearby-only updates with `StateView` and a grid; a new shard at 50 players via `joinOrCreate`
+- [x] Protocol version check; reconnect window
+- [x] Room integration tests over real WebSockets; a Playwright test where a laptop and a phone see each other and chat
 
 _Done when_ two browsers, one emulating a phone, walk together smoothly with 150 ms of simulated latency.
 
 **M1.5 — Social basics**
 
-- [ ] Guest identity: signed token, display name and colour on first visit, name tags
-- [ ] Chat: speech bubbles and a chat log, rate limit, basic word filter
-- [ ] Emotes from hotkeys and an emote wheel; local mute and block; a report button (written to server logs until Phase 2)
+- [x] Guest identity: signed token, display name and colour on first visit, name tags
+- [x] Chat: speech bubbles and a chat log, rate limit, basic word filter
+- [x] Emotes from hotkeys and an emote wheel; local mute and block; a report button (written to server logs until Phase 2)
 
 _Done when_ players can see who's who, chat and emote, and spam gets throttled.
 
 **M1.6 — Mobile and performance**
 
-- [ ] Touch controls: virtual stick, one-finger look, tap to move, context button, pinch between camera levels
-- [ ] Responsive HUD with safe areas; web app manifest and service worker
-- [ ] Low-tier performance pass: instancing, LODs, texture budget
-- [ ] Load test with 50 bots per room using `@colyseus/loadtest`
+- [x] Touch controls: virtual stick, one-finger look, tap to move, context button, pinch between camera levels
+- [x] Responsive HUD with safe areas; web app manifest and service worker
+- [x] Low-tier performance pass: instancing, blob shadows, lazy-loaded 3D engine (LODs and texture budgets arrive with real models in Phase 2)
+- [x] Load test with 50 bots per room (`pnpm bots`): about 1.2 ms per server step at 50 players, the 51st player opens a second shard
 
 _Done when_ the plaza holds 30 fps on a mid-range phone with 50 players in the shard (bots), and the room's step time stays within budget.
 
@@ -179,23 +181,23 @@ _Done when_ the plaza holds 30 fps on a mid-range phone with 50 players in the s
 | Name, trademark and contest rules                     | —                              | legal review before launch (plan: _Rules for the ads_)                                     |
 | Toolchain churn (TypeScript 7, Vite, Colyseus majors) | an upgrade breaks the build    | pin versions; upgrade in separate PRs                                                      |
 
-## After you confirm
+## Next steps
 
-1. I build M0 to M1.4 in order on the branch `phase-1-walkable-world`, where these docs already live, and push after each milestone with a short note on what works, how to run it and the test results.
-2. Then M1.5 and M1.6. M1.7 needs your hosting choice and real playtesters, so I stop there and check with you.
+1. **M1.7:** deploy with `render.yaml` (Render → New → Blueprint), optionally put the client on Cloudflare Pages, then playtest with friends on phones and laptops.
+2. Triage the playtest fix list, then review Gate 1 together before Phase 2 starts.
 
-From here I can't test on real phones (I use device emulation and bots), deploy without hosting accounts, or run playtests. Those parts are yours.
+From here I can't test on real phones (I use device emulation and bots), create hosting accounts, or run playtests. Those parts are yours.
 
 ## Decisions
 
-Only the first one matters right now; the rest have defaults and can wait.
+The open ones have defaults and can wait until the milestone that needs them.
 
-| Decision                          | Needed by                        | Default if you don't say                                                      |
-| --------------------------------- | -------------------------------- | ----------------------------------------------------------------------------- |
-| Branch and PR flow                | now                              | one branch per phase, pushed after every milestone; a PR when you ask for one |
-| Default world style               | M1.3                             | smooth form, noon light (the plan's example)                                  |
-| Hosting for staging               | M1.7                             | I propose options then                                                        |
-| Audience age                      | M2.1                             | safe defaults that work for either answer                                     |
-| 3D generation provider            | M2.7                             | hosted API behind an adapter, compared on a test set                          |
-| SDK openness                      | M2.11                            | our own agent first; MCP door internal                                        |
-| Business model, team and timeline | Phase 4; team now, for estimates | not blocking                                                                  |
+| Decision                          | Needed by                        | Default if you don't say                                                                       |
+| --------------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Branch and PR flow                | decided                          | one branch per phase, pushed after every milestone; a PR when you ask for one                  |
+| Default world style               | M1.3                             | smooth form, noon light (the plan's example)                                                   |
+| Hosting for staging               | decided                          | Render free tier for the server and client; Cloudflare Pages optional for the client (ADR-005) |
+| Audience age                      | M2.1                             | safe defaults that work for either answer                                                      |
+| 3D generation provider            | M2.7                             | hosted API behind an adapter, compared on a test set                                           |
+| SDK openness                      | M2.11                            | our own agent first; MCP door internal                                                         |
+| Business model, team and timeline | Phase 4; team now, for estimates | not blocking                                                                                   |

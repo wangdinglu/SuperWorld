@@ -22,6 +22,11 @@ function secret(): string {
 }
 let devSecret: string | undefined;
 
+/** Throws at startup if production is missing its token secret, so a bad deploy fails fast. */
+export function assertGuestSecret(): void {
+  secret();
+}
+
 const sign = (payload: string): string =>
   createHmac("sha256", secret()).update(payload).digest("base64url");
 

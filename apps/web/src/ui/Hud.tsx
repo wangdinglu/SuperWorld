@@ -1,10 +1,26 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { CHAT_MAX, EMOTES, type Emote } from "@superworld/protocol";
 import type { Game } from "../game.ts";
-import { cameraLevel, chatLog, chatOpen, hint, muted, people, personKey, ping, renderInfo, toggleMute } from "../store.ts";
+import {
+  cameraLevel,
+  chatLog,
+  chatOpen,
+  hint,
+  muted,
+  people,
+  personKey,
+  ping,
+  renderInfo,
+  toggleMute,
+} from "../store.ts";
 import { Joystick } from "./Joystick.tsx";
 
-const EMOTE_LABEL: Record<Emote, string> = { wave: "👋 Wave", dance: "💃 Dance", cheer: "🙌 Cheer", sit: "🪑 Sit" };
+const EMOTE_LABEL: Record<Emote, string> = {
+  wave: "👋 Wave",
+  dance: "💃 Dance",
+  cheer: "🙌 Cheer",
+  sit: "🪑 Sit",
+};
 const touch = typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches;
 
 export function Hud(props: { game: Game }) {
@@ -29,13 +45,19 @@ export function Hud(props: { game: Game }) {
           {people.value.length + 1} here
         </button>
         {ping.value > 0 && <div class="pill muted-text">{ping.value} ms</div>}
-        {info && <div class="pill muted-text small">{info.backend} · {info.tier}</div>}
+        {info && (
+          <div class="pill muted-text small">
+            {info.backend} · {info.tier}
+          </div>
+        )}
       </div>
 
       {showPeople && (
         <div class="card panel people">
           <h2>People nearby</h2>
-          {people.value.length === 0 && <p class="muted-text">Nobody else nearby yet. Share the link!</p>}
+          {people.value.length === 0 && (
+            <p class="muted-text">Nobody else nearby yet. Share the link!</p>
+          )}
           <ul>
             {people.value.map((p) => {
               const isMuted = muted.value.includes(personKey(p));
@@ -43,7 +65,9 @@ export function Hud(props: { game: Game }) {
                 <li key={p.sessionId}>
                   <span class="dot" style={{ background: p.colour }} />
                   <span class="grow">{p.name}</span>
-                  <button class="link" onClick={() => toggleMute(p)}>{isMuted ? "Unmute" : "Mute"}</button>
+                  <button class="link" onClick={() => toggleMute(p)}>
+                    {isMuted ? "Unmute" : "Mute"}
+                  </button>
                   <button
                     class="link danger"
                     onClick={() => {
@@ -98,7 +122,9 @@ export function Hud(props: { game: Game }) {
             onKeyDown={(e) => e.key === "Escape" && (chatOpen.value = false)}
             onBlur={() => !draft && (chatOpen.value = false)}
           />
-          <button class="primary" type="submit">Send</button>
+          <button class="primary" type="submit">
+            Send
+          </button>
         </form>
       ) : null}
 
@@ -118,13 +144,32 @@ export function Hud(props: { game: Game }) {
             ))}
           </div>
         )}
-        <button class="round" aria-label="Chat" onClick={() => (chatOpen.value = !chatOpen.value)}>💬</button>
-        <button class="round" aria-label="Emotes" aria-expanded={showEmotes} onClick={() => setShowEmotes(!showEmotes)}>🙂</button>
-        <button class="round" aria-label={cameraLevel.value === "walk" ? "Overview camera" : "Walk camera"} onClick={() => game.toggleLevel()}>
+        <button class="round" aria-label="Chat" onClick={() => (chatOpen.value = !chatOpen.value)}>
+          💬
+        </button>
+        <button
+          class="round"
+          aria-label="Emotes"
+          aria-expanded={showEmotes}
+          onClick={() => setShowEmotes(!showEmotes)}
+        >
+          🙂
+        </button>
+        <button
+          class="round"
+          aria-label={cameraLevel.value === "walk" ? "Overview camera" : "Walk camera"}
+          onClick={() => game.toggleLevel()}
+        >
           {cameraLevel.value === "walk" ? "🗺️" : "🚶"}
         </button>
         {touch && (
-          <button class="round big" aria-label="Jump" onPointerDown={() => game.controls.queueJump()}>⤒</button>
+          <button
+            class="round big"
+            aria-label="Jump"
+            onPointerDown={() => game.controls.queueJump()}
+          >
+            ⤒
+          </button>
         )}
       </div>
 

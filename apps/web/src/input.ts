@@ -12,7 +12,12 @@ export interface InputHandlers {
   onOpenChat(): void;
 }
 
-const EMOTE_KEYS: Record<string, Emote> = { Digit1: "wave", Digit2: "dance", Digit3: "cheer", Digit4: "sit" };
+const EMOTE_KEYS: Record<string, Emote> = {
+  Digit1: "wave",
+  Digit2: "dance",
+  Digit3: "cheer",
+  Digit4: "sit",
+};
 const TAP_MAX_MOVE = 10;
 const TAP_MAX_MS = 350;
 
@@ -25,7 +30,10 @@ export class InputController {
   private stick = { x: 0, y: 0 };
   private jumpQueued = false;
   private runToggle = false;
-  private readonly pointers = new Map<number, { x: number; y: number; startX: number; startY: number; t: number }>();
+  private readonly pointers = new Map<
+    number,
+    { x: number; y: number; startX: number; startY: number; t: number }
+  >();
   private pinchDistance = 0;
   private readonly cleanup: (() => void)[] = [];
 
@@ -33,7 +41,12 @@ export class InputController {
     private readonly surface: HTMLElement,
     private readonly handlers: InputHandlers,
   ) {
-    const on = <K extends keyof WindowEventMap>(target: Window | HTMLElement, type: K, fn: (e: WindowEventMap[K]) => void, opts?: AddEventListenerOptions) => {
+    const on = <K extends keyof WindowEventMap>(
+      target: Window | HTMLElement,
+      type: K,
+      fn: (e: WindowEventMap[K]) => void,
+      opts?: AddEventListenerOptions,
+    ) => {
       target.addEventListener(type, fn as EventListener, opts);
       this.cleanup.push(() => target.removeEventListener(type, fn as EventListener));
     };
@@ -44,10 +57,15 @@ export class InputController {
     on(window, "pointermove", (e) => this.pointerMove(e));
     on(window, "pointerup", (e) => this.pointerUp(e));
     on(window, "pointercancel", (e) => this.pointers.delete(e.pointerId));
-    on(surface, "wheel", (e) => {
-      e.preventDefault();
-      this.handlers.onZoom(e.deltaY * 0.0012);
-    }, { passive: false });
+    on(
+      surface,
+      "wheel",
+      (e) => {
+        e.preventDefault();
+        this.handlers.onZoom(e.deltaY * 0.0012);
+      },
+      { passive: false },
+    );
     on(surface, "contextmenu", (e) => e.preventDefault());
   }
 
@@ -75,7 +93,13 @@ export class InputController {
 
   private pointerDown(e: PointerEvent): void {
     this.surface.setPointerCapture?.(e.pointerId);
-    this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, t: performance.now() });
+    this.pointers.set(e.pointerId, {
+      x: e.clientX,
+      y: e.clientY,
+      startX: e.clientX,
+      startY: e.clientY,
+      t: performance.now(),
+    });
     if (this.pointers.size === 2) this.pinchDistance = this.currentPinch();
   }
 
@@ -100,7 +124,8 @@ export class InputController {
     this.pointers.delete(e.pointerId);
     if (!p || this.pointers.size > 0) return;
     const moved = Math.hypot(e.clientX - p.startX, e.clientY - p.startY);
-    if (moved <= TAP_MAX_MOVE && performance.now() - p.t <= TAP_MAX_MS) this.handlers.onTap(e.clientX, e.clientY);
+    if (moved <= TAP_MAX_MOVE && performance.now() - p.t <= TAP_MAX_MS)
+      this.handlers.onTap(e.clientX, e.clientY);
   }
 
   private currentPinch(): number {
@@ -132,7 +157,11 @@ export class InputController {
       y /= len;
     }
     const stickLen = Math.hypot(this.stick.x, this.stick.y);
-    const run = this.keys.has("ShiftLeft") || this.keys.has("ShiftRight") || this.runToggle || stickLen > 0.92;
+    const run =
+      this.keys.has("ShiftLeft") ||
+      this.keys.has("ShiftRight") ||
+      this.runToggle ||
+      stickLen > 0.92;
     return { x, y, run, active: len > 0.05 };
   }
 

@@ -27,7 +27,12 @@ function geometryFor(part: Part, style: ResolvedStyle): THREE.BufferGeometry {
     case "box":
       return new THREE.BoxGeometry(...part.size);
     case "cylinder":
-      return new THREE.CylinderGeometry(part.radius, part.radius, part.height, Math.max(seg, part.radius > 4 ? 48 : seg));
+      return new THREE.CylinderGeometry(
+        part.radius,
+        part.radius,
+        part.height,
+        Math.max(seg, part.radius > 4 ? 48 : seg),
+      );
     case "sphere":
       return new THREE.SphereGeometry(part.radius, seg, Math.max(4, Math.round(seg * 0.6)));
     case "cone":
@@ -38,7 +43,11 @@ function geometryFor(part: Part, style: ResolvedStyle): THREE.BufferGeometry {
 const materialCache = new Map<string, THREE.Material>();
 
 /** Library materials per surface topic. Shared and cached, so many objects cost few materials. */
-export function materialFor(colour: string, style: ResolvedStyle, emissive = false): THREE.Material {
+export function materialFor(
+  colour: string,
+  style: ResolvedStyle,
+  emissive = false,
+): THREE.Material {
   const key = `${colour}|${style.surface}|${style.form}|${emissive}`;
   const cached = materialCache.get(key);
   if (cached) return cached;
@@ -47,9 +56,19 @@ export function materialFor(colour: string, style: ResolvedStyle, emissive = fal
   if (emissive) {
     material = new THREE.MeshBasicMaterial({ color: colour });
   } else if (style.surface === "toon" || style.surface === "ink") {
-    material = new THREE.MeshToonMaterial({ color: style.surface === "ink" ? new THREE.Color(colour).lerp(new THREE.Color("#ffffff"), 0.55) : colour });
+    material = new THREE.MeshToonMaterial({
+      color:
+        style.surface === "ink"
+          ? new THREE.Color(colour).lerp(new THREE.Color("#ffffff"), 0.55)
+          : colour,
+    });
   } else if (style.surface === "pbr") {
-    material = new THREE.MeshStandardMaterial({ color: colour, roughness: 0.6, metalness: 0.1, flatShading });
+    material = new THREE.MeshStandardMaterial({
+      color: colour,
+      roughness: 0.6,
+      metalness: 0.1,
+      flatShading,
+    });
   } else {
     material = new THREE.MeshLambertMaterial({ color: colour, flatShading });
   }
@@ -70,7 +89,15 @@ function skyDome(style: ResolvedStyle): THREE.Mesh {
     colours.push(c.r, c.g, c.b);
   }
   geometry.setAttribute("color", new THREE.Float32BufferAttribute(colours, 3));
-  const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }));
+  const mesh = new THREE.Mesh(
+    geometry,
+    new THREE.MeshBasicMaterial({
+      vertexColors: true,
+      side: THREE.BackSide,
+      fog: false,
+      depthWrite: false,
+    }),
+  );
   mesh.renderOrder = -1;
   return mesh;
 }
@@ -79,7 +106,11 @@ function skyDome(style: ResolvedStyle): THREE.Mesh {
  * Builds the visible side of a place from its scene file. Repeated template parts become one
  * InstancedMesh each, so a plaza of ~70 objects draws in a few dozen calls.
  */
-export function buildPlace(scene: Scene, library: TemplateLibrary, style: ResolvedStyle): BuiltPlace {
+export function buildPlace(
+  scene: Scene,
+  library: TemplateLibrary,
+  style: ResolvedStyle,
+): BuiltPlace {
   const root = new THREE.Group();
   root.name = `place:${scene.place}`;
   const rig = LIGHT_RIGS[style.light];
@@ -87,7 +118,11 @@ export function buildPlace(scene: Scene, library: TemplateLibrary, style: Resolv
 
   root.add(skyDome(style));
 
-  const hemi = new THREE.HemisphereLight(rig.ambient, colourOf("ground", style), rig.ambientIntensity);
+  const hemi = new THREE.HemisphereLight(
+    rig.ambient,
+    colourOf("ground", style),
+    rig.ambientIntensity,
+  );
   root.add(hemi);
   const sun = new THREE.DirectionalLight(rig.sun, rig.sunIntensity);
   sun.position.set(rig.sunDir[0] * 60, rig.sunDir[1] * 60, rig.sunDir[2] * 60);
@@ -100,8 +135,13 @@ export function buildPlace(scene: Scene, library: TemplateLibrary, style: Resolv
   cam.far = 200;
   root.add(sun, sun.target);
 
-  const groundGeometry = new THREE.CircleGeometry(scene.environment.ground.radius, 96).rotateX(-Math.PI / 2);
-  const ground = new THREE.Mesh(groundGeometry, materialFor(colourOf(scene.environment.ground.colour, style), style));
+  const groundGeometry = new THREE.CircleGeometry(scene.environment.ground.radius, 96).rotateX(
+    -Math.PI / 2,
+  );
+  const ground = new THREE.Mesh(
+    groundGeometry,
+    materialFor(colourOf(scene.environment.ground.colour, style), style),
+  );
   ground.receiveShadow = true;
   ground.name = "ground";
   root.add(ground);
@@ -130,7 +170,11 @@ export function buildPlace(scene: Scene, library: TemplateLibrary, style: Resolv
       instances.forEach((inst, i) => {
         const placed = placePart(part, inst.at, inst.yaw, inst.scale);
         q.setFromAxisAngle(up, placed.yaw);
-        m.compose(new THREE.Vector3(...placed.pos), q, new THREE.Vector3(inst.scale, inst.scale, inst.scale));
+        m.compose(
+          new THREE.Vector3(...placed.pos),
+          q,
+          new THREE.Vector3(inst.scale, inst.scale, inst.scale),
+        );
         mesh.setMatrixAt(i, m);
       });
       mesh.castShadow = !part.emissive && part.shape !== "cylinder" ? true : part.solid;

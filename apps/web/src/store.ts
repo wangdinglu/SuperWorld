@@ -32,7 +32,9 @@ export const muted = signal<string[]>(load<string[]>("muted", []));
 export const personKey = (p: { name: string; colour: string }) => `${p.name}|${p.colour}`;
 export function toggleMute(p: Person): void {
   const key = personKey(p);
-  muted.value = muted.value.includes(key) ? muted.value.filter((k) => k !== key) : [...muted.value, key];
+  muted.value = muted.value.includes(key)
+    ? muted.value.filter((k) => k !== key)
+    : [...muted.value, key];
   save("muted", muted.value);
 }
 

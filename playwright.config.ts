@@ -8,6 +8,8 @@ export default defineConfig({
   testDir: "e2e",
   timeout: 60_000,
   retries: 0,
+  // One game server and software rendering: run tests one at a time.
+  workers: 1,
   use: {
     baseURL: `http://localhost:${port}`,
     launchOptions: {

@@ -2,11 +2,26 @@ import { useState } from "preact/hooks";
 import { NAME_MAX } from "@superworld/protocol";
 import { load } from "../storage.ts";
 
-export const COLOURS = ["#f2785c", "#f2ae45", "#5fae6b", "#41c7b6", "#6c8cff", "#ae92ff", "#f57cc0", "#4a5160"];
+export const COLOURS = [
+  "#f2785c",
+  "#f2ae45",
+  "#5fae6b",
+  "#41c7b6",
+  "#6c8cff",
+  "#ae92ff",
+  "#f57cc0",
+  "#4a5160",
+];
 
-export function Login(props: { busy: boolean; error: string; onEnter(name: string, colour: string): void }) {
+export function Login(props: {
+  busy: boolean;
+  error: string;
+  onEnter(name: string, colour: string): void;
+}) {
   const [name, setName] = useState(load("name", ""));
-  const [colour, setColour] = useState(load("colour", COLOURS[Math.floor(Math.random() * COLOURS.length)]!));
+  const [colour, setColour] = useState(
+    load("colour", COLOURS[Math.floor(Math.random() * COLOURS.length)]!),
+  );
   const valid = name.trim().length > 0;
 
   return (
@@ -19,7 +34,9 @@ export function Login(props: { busy: boolean; error: string; onEnter(name: strin
         }}
       >
         <h1>SuperWorld</h1>
-        <p class="lead">One shared world, from a link. Pick a name and a colour, then step into the plaza.</p>
+        <p class="lead">
+          One shared world, from a link. Pick a name and a colour, then step into the plaza.
+        </p>
         <label class="field">
           <span>Name</span>
           <input
@@ -48,11 +65,17 @@ export function Login(props: { busy: boolean; error: string; onEnter(name: strin
             ))}
           </div>
         </div>
-        {props.error && <p class="error" role="alert">{props.error}</p>}
+        {props.error && (
+          <p class="error" role="alert">
+            {props.error}
+          </p>
+        )}
         <button class="primary" type="submit" disabled={!valid || props.busy}>
           {props.busy ? "Entering…" : "Enter the plaza"}
         </button>
-        <p class="hint-small">WASD or tap to move · drag to look · M for the overview · Enter to chat</p>
+        <p class="hint-small">
+          WASD or tap to move · drag to look · M for the overview · Enter to chat
+        </p>
       </form>
     </div>
   );
