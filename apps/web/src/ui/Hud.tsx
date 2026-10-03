@@ -10,12 +10,16 @@ import {
   people,
   personKey,
   ping,
+  place,
   renderInfo,
   soloMode,
   toggleMute,
 } from "../store.ts";
 import { Joystick } from "./Joystick.tsx";
 import { AccountPanel } from "./AccountPanel.tsx";
+import { BuildPanel } from "./BuildPanel.tsx";
+import { KnockPrompts } from "./KnockPrompts.tsx";
+import { SpacesPanel } from "./SpacesPanel.tsx";
 import { account } from "../account.ts";
 
 const EMOTE_LABEL: Record<Emote, string> = {
@@ -30,7 +34,9 @@ export function Hud(props: { game: Game }) {
   const { game } = props;
   const [showPeople, setShowPeople] = useState(false);
   const [showEmotes, setShowEmotes] = useState(false);
-  const [showAccount, setShowAccount] = useState(false);
+  const [panel, setPanel] = useState<"none" | "account" | "spaces" | "build" | "people">("none");
+  const showAccount = panel === "account";
+  const toggle = (p: typeof panel) => setPanel(panel === p ? "none" : p);
   const [draft, setDraft] = useState("");
   const chatInput = useRef<HTMLInputElement>(null);
 
@@ -44,7 +50,27 @@ export function Hud(props: { game: Game }) {
   return (
     <div class="hud">
       <div class="topbar">
-        <div class="pill strong">{soloMode.value ? "Plaza · solo practice" : "Plaza"}</div>
+        <div class="pill strong">
+          {soloMode.value
+            ? "Plaza · solo practice"
+            : place.value?.kind === "space"
+              ? place.value.name
+              : "Plaza"}
+        </div>
+        {!soloMode.value && (
+          <button class="pill" onClick={() => toggle("spaces")} aria-expanded={panel === "spaces"}>
+            Spaces
+          </button>
+        )}
+        {place.value?.isOwner && (
+          <button
+            class="pill accent"
+            onClick={() => toggle("build")}
+            aria-expanded={panel === "build"}
+          >
+            🔨 Build{place.value.draftSteps.length > 0 ? ` · ${place.value.draftSteps.length}` : ""}
+          </button>
+        )}
         <button class="pill" onClick={() => setShowPeople(!showPeople)} aria-expanded={showPeople}>
           {people.value.length + 1} here
         </button>
@@ -55,19 +81,20 @@ export function Hud(props: { game: Game }) {
           </div>
         )}
         {!soloMode.value && (
-          <button
-            class="pill"
-            onClick={() => setShowAccount(!showAccount)}
-            aria-expanded={showAccount}
-          >
+          <button class="pill" onClick={() => toggle("account")} aria-expanded={showAccount}>
             {account.value?.user.kind === "member" ? "Account" : "Keep my account"}
           </button>
         )}
       </div>
 
-      {showAccount && <AccountPanel onClose={() => setShowAccount(false)} />}
+      {panel === "spaces" && <SpacesPanel game={game} onClose={() => setPanel("none")} />}
+      {panel === "build" && place.value?.isOwner && (
+        <BuildPanel game={game} onClose={() => setPanel("none")} />
+      )}
+      <KnockPrompts game={game} />
+      {showAccount && <AccountPanel onClose={() => setPanel("none")} />}
 
-      {showPeople && !showAccount && (
+      {showPeople && panel === "none" && (
         <div class="card panel people">
           <h2>People nearby</h2>
           {people.value.length === 0 && (

@@ -129,6 +129,9 @@ importers:
       '@superworld/schema':
         specifier: workspace:*
         version: link:../../packages/schema
+      '@superworld/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
       '@superworld/style':
         specifier: workspace:*
         version: link:../../packages/style

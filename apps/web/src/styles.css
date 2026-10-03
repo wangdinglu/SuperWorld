@@ -443,3 +443,122 @@ button {
   line-height: 1.45;
   font-size: 14.5px;
 }
+
+/* Spaces, building and knocking */
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.row.spread {
+  justify-content: space-between;
+}
+.row input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font-size: 15px;
+}
+.stack {
+  display: grid;
+  gap: 8px;
+}
+.small {
+  font-size: 12.5px;
+}
+.pill.accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+.spaces ul,
+.objects {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  max-height: 32vh;
+  overflow: auto;
+}
+.spaces li,
+.objects li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14.5px;
+}
+.build {
+  width: min(380px, calc(100vw - 24px));
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.tabs button {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 13.5px;
+}
+.tabs button[aria-selected="true"] {
+  background: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+}
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.span2 {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.style-picks {
+  display: grid;
+  gap: 10px;
+}
+.style-picks .label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 13.5px;
+}
+.knock {
+  left: 50%;
+  transform: translateX(-50%);
+  top: 30%;
+  width: min(340px, calc(100vw - 24px));
+}
+.knock.owner {
+  top: auto;
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 80px);
+}

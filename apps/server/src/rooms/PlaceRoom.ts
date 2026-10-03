@@ -119,7 +119,8 @@ export class PlaceRoom extends Room<{
     this.state.place = this.scene.place;
     this.state.revision = this.scene.revision;
     this.patchRate = 1000 / PATCH_RATE_HZ;
-    this.setMetadata({ place: this.scene.place, kind: options.kind });
+    // setMetadata replaces (Colyseus 0.18): keep the matchmaking filter (placeId) it already holds.
+    this.setMetadata({ ...this.metadata, place: this.scene.place, kind: options.kind });
 
     this.setFixedTimestep((ctx) => {
       const started = performance.now();

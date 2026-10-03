@@ -3,7 +3,7 @@
 > **Status:** draft for review · 3 Oct 2026
 > How we build [ARCHITECTURE.md](ARCHITECTURE.md), step by step. Every phase ships something playable and ends at a gate from the [plan](plan/index.html).
 >
-> **Status (3 Oct 2026):** Phase 1 is complete and live at https://wangdinglu.github.io/SuperWorld/ (solo practice until a game server is connected). Phase 2 has started on `phase-2-ai-creation`: M2.1 (accounts and saved places) is done.
+> **Status (3 Oct 2026):** Phase 1 is complete and live at https://wangdinglu.github.io/SuperWorld/ (solo practice until a game server is connected). Phase 2 is in progress: M2.1 (accounts), M2.4 (Creator SDK) and M2.5 (private spaces with a build panel) are done. Next: M2.6, the building agent. M2.2/M2.3/M2.7 (asset pipeline, VRM, generated avatars) follow, so players can build with the existing objects first.
 
 ## At a glance
 
@@ -127,8 +127,8 @@ _Done when_ the plaza holds 30 fps on a mid-range phone with 50 players in the s
 | M2.1 Persistence and accounts ✅ | Postgres with Drizzle (embedded PGlite for development), guest → member by email link, places and revisions. Object storage moves to M2.2 | a player's data survives a server restart                                                                 |
 | M2.2 Asset pipeline              | validate → optimise → collider → bake → moderate → publish jobs                                                                           | an uploaded glTF appears within budget with sprites and a thumbnail; a rejected one never shows to others |
 | M2.3 VRM avatars                 | three-vrm, a default avatar set, VRM animation emotes, 2D sprites                                                                         | players pick a VRM avatar and see each other's in 3D and 2D                                               |
-| M2.4 Creator SDK v1              | tool registry, patch log, budgets, draft / accept / undo, API door                                                                        | every tool has schema and budget tests; undo restores the exact previous revision                         |
-| M2.5 Private spaces              | space rooms that start and stop on demand, access policies, knocking, links, revisions                                                    | a friend knocks, gets let in, and watches edits happen live                                               |
+| M2.4 Creator SDK v1 ✅           | tool registry, patch log, budgets, draft / accept / undo, API door                                                                        | every tool has schema and budget tests; undo restores the exact previous revision                         |
+| M2.5 Private spaces ✅           | space rooms that start and stop on demand, access policies, knocking, links, revisions                                                    | a friend knocks, gets let in, and watches edits happen live                                               |
 | M2.6 Building agent              | agent panel, Claude tool use over the SDK, async jobs, an eval set, quotas, logs                                                          | one sentence becomes a themed room within budget, and every step can be undone                            |
 | M2.7 Avatar generation           | describe → concept → mesh → rig → VRM → checks, behind a provider adapter                                                                 | a sentence becomes a checked, phone-ready VRM avatar                                                      |
 | M2.8 Items and behaviours        | templates with wear, hold, sit, throw, play, open screen (drive comes with races in M3.2); inventory                                      | items work in spaces and the plaza without new code per item                                              |

@@ -127,6 +127,7 @@ describe("spaces", () => {
     expect((await knocking).body.allowed).toBe(true);
     const inside = await joinSpace(visitor, spaceId);
     expect(inside.info.place?.id).toBe(spaceId);
+    expect(inside.room.roomId).toBe(home.room.roomId);
   });
 
   it("shows the owner's edits to everyone inside, live, and ignores visitors' edits", async () => {
@@ -180,6 +181,9 @@ describe("spaces", () => {
     ).toBe("public");
     const walkIn = await joinSpace(await person("Walker"), spaceId);
     expect(walkIn.info.place?.visibility).toBe("public");
+    // Everyone visiting one space shares one room.
+    expect(walkIn.room.roomId).toBe(rooms[rooms.length - 3]!.roomId);
+    await until(() => walkIn.room.state.players?.size === 3);
   });
 
   it("lists the tools for outside agents", async () => {
