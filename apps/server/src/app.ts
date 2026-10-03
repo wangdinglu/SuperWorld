@@ -17,7 +17,10 @@ import { z } from "zod";
 import type { Content } from "./content.ts";
 import type { Mailer } from "./mailer.ts";
 import { maskText, RateLimiter } from "./moderation.ts";
-import { PlazaRoom } from "./rooms/PlazaRoom.ts";
+import { SpaceEditors } from "./editors.ts";
+import { Knocks } from "./knocks.ts";
+import { PlaceRoom } from "./rooms/PlaceRoom.ts";
+import { registerSpaceRoutes } from "./spaces.ts";
 import { bearer, issueToken, verifyToken } from "./tokens.ts";
 
 /** The built web client, served by this process when present (single-service deploys). */
@@ -55,6 +58,10 @@ function session(user: User) {
 
 export function createServer(services: Services) {
   const { content, db, mailer } = services;
+  const templates = new Map(content.templates.templates.map((t) => [t.id, t]));
+  const editors = new SpaceEditors(db, templates);
+  const knocks = new Knocks();
+  const liveRooms = new Map<string, PlaceRoom>();
   const guestLimit = new RateLimiter(20, 60_000);
   const emailIpLimit = new RateLimiter(5, 60 * 60_000);
   const emailAddressLimit = new RateLimiter(3, 60 * 60_000);
@@ -74,7 +81,24 @@ export function createServer(services: Services) {
   return defineServer({
     transport: new WebSocketTransport(),
     rooms: {
-      [ROOM.plaza]: defineRoom(PlazaRoom, { content, db, placeId: content.world.spawnPlace }),
+      [ROOM.plaza]: defineRoom(PlaceRoom, {
+        content,
+        db,
+        editors,
+        knocks,
+        liveRooms,
+        kind: "plaza",
+        placeId: content.world.spawnPlace,
+      }),
+      // One room per space: clients join with { placeId }.
+      [ROOM.space]: defineRoom(PlaceRoom, {
+        content,
+        db,
+        editors,
+        knocks,
+        liveRooms,
+        kind: "space",
+      }).filterBy(["placeId"]),
     },
     express: async (app) => {
       const { default: express } = await import("express");
@@ -174,6 +198,8 @@ export function createServer(services: Services) {
             .json({ error: "This sign-in link has expired or was already used" });
         res.json(session(user));
       });
+
+      registerSpaceRoutes(app, { db, editors, knocks, liveRooms, requireUser });
 
       /** World manifest, so the client can list places. */
       app.get("/api/world", (_req, res) => {

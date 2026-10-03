@@ -165,3 +165,7 @@ export async function setVisibility(
 ): Promise<void> {
   await db.update(places).set({ visibility, updatedAt: new Date() }).where(eq(places.id, placeId));
 }
+
+export async function renamePlace(db: Db, placeId: string, name: string): Promise<void> {
+  await db.update(places).set({ name, updatedAt: new Date() }).where(eq(places.id, placeId));
+}
