@@ -1,0 +1,164 @@
+{
+  "schema": "superworld.avatars/1",
+  "default": "sprout",
+  "avatars": [
+    {
+      "id": "sprout",
+      "name": "Sprout",
+      "file": "sprout.vrm",
+      "style": {
+        "form": "smooth",
+        "surface": "soft",
+        "colour": "meadow"
+      },
+      "about": "A seedling with a leaf that sways. Rounded shapes and gentle shading, like the plaza."
+    },
+    {
+      "id": "pip",
+      "name": "Pip",
+      "file": "pip.vrm",
+      "style": {
+        "form": "lowpoly",
+        "surface": "toon",
+        "colour": "candy"
+      },
+      "about": "A faceted fox with a bouncy tail. Flat facets, hard cel shading and bold outlines."
+    },
+    {
+      "id": "inky",
+      "name": "Inky",
+      "file": "inky.vrm",
+      "style": {
+        "form": "smooth",
+        "surface": "ink",
+        "colour": "mono"
+      },
+      "about": "A doodle off a handwritten page. Brush outlines, cross-hatched shadows and inked hands."
+    },
+    {
+      "id": "bolt",
+      "name": "Bolt",
+      "file": "bolt.vrm",
+      "style": {
+        "form": "voxel",
+        "surface": "pbr",
+        "colour": "dusk"
+      },
+      "about": "A blocky robot with an LED face. Built from cubes, with metal panels, a glass screen and glowing lights."
+    },
+    {
+      "id": "polybot",
+      "name": "Polybot",
+      "file": "polybot.vrm",
+      "style": {
+        "form": "lowpoly",
+        "surface": "toon"
+      },
+      "about": "A friendly low-poly robot from Polygonal Mind's 100Avatars collection, free to use (CC0).",
+      "source": {
+        "author": "Polygonal Mind",
+        "collection": "100Avatars R1 (#051)",
+        "url": "https://github.com/ToxSam/open-source-avatars",
+        "license": "CC0",
+        "download": "https://arweave.net/DUR8v-IugXppdMBxPdE1rDO2dZCJJ7ZgBTXSRgPJFNo",
+        "sha256": "e255bace0d7de8b5fc90756efc83e167080e6db97692f23623fec5f1c67c423d",
+        "fixes": ["mirrorZ", "tPose"]
+      }
+    },
+    {
+      "id": "rose",
+      "name": "Rose",
+      "file": "rose.vrm",
+      "style": {
+        "form": "lowpoly",
+        "surface": "toon"
+      },
+      "about": "A swashbuckling pirate with a feathered tricorn hat. From Polygonal Mind's 100Avatars, free to use (CC0).",
+      "source": {
+        "author": "Polygonal Mind",
+        "collection": "100Avatars R1 (#057)",
+        "url": "https://github.com/ToxSam/open-source-avatars",
+        "license": "CC0",
+        "download": "https://arweave.net/Ea1KXujzJatQgCFSMzGOzp_UtHqB1pyia--U3AtkMAY",
+        "sha256": "8e44e5638ffdf935e5d6fa990aa6cba428269f342f2db024c2961ee286a41e5f",
+        "fixes": ["mirrorZ"]
+      }
+    },
+    {
+      "id": "erika",
+      "name": "Erika",
+      "file": "erika.vrm",
+      "style": {
+        "form": "lowpoly",
+        "surface": "toon"
+      },
+      "about": "A relaxed girl with bright blue hair and comfy clothes. From Polygonal Mind's 100Avatars, free to use (CC0).",
+      "source": {
+        "author": "Polygonal Mind",
+        "collection": "100Avatars R1 (#053)",
+        "url": "https://github.com/ToxSam/open-source-avatars",
+        "license": "CC0",
+        "download": "https://arweave.net/GZkfa0SNnrBWluRL_pXpakg7T3K3d4l87__wR4mD3UM",
+        "sha256": "ac2030d23c791065e5cd596e251257269bc55b8c76b29a6ebf183bcfe8c7c1f7",
+        "fixes": ["mirrorZ"]
+      }
+    },
+    {
+      "id": "kate",
+      "name": "Kate",
+      "file": "kate.vrm",
+      "style": {
+        "form": "lowpoly",
+        "surface": "toon"
+      },
+      "about": "A cheerful girl with pink hair and a teal sweater. From Polygonal Mind's 100Avatars, free to use (CC0).",
+      "source": {
+        "author": "Polygonal Mind",
+        "collection": "100Avatars R1 (#038)",
+        "url": "https://github.com/ToxSam/open-source-avatars",
+        "license": "CC0",
+        "download": "https://arweave.net/1q4IQwLQXJVS0JGSpeXlRdazmZYdwJbmLbTv7o0s5Y8",
+        "sha256": "d857bca56a26730b4f78872ffa322d11b6f427580e3224d1b1cd43368b50f9de",
+        "fixes": ["mirrorZ"]
+      }
+    },
+    {
+      "id": "witch",
+      "name": "Witch",
+      "file": "witch.vrm",
+      "style": {
+        "form": "lowpoly",
+        "surface": "toon"
+      },
+      "about": "A little witch in a pointy hat and striped stockings. From Polygonal Mind's 100Avatars, free to use (CC0).",
+      "source": {
+        "author": "Polygonal Mind",
+        "collection": "100Avatars R1 (#039)",
+        "url": "https://github.com/ToxSam/open-source-avatars",
+        "license": "CC0",
+        "download": "https://arweave.net/0YLwWzDkvVWn9ttv2RAdc8bvWcCBjvYPpu7fpjpHYU0",
+        "sha256": "33fa9a9c4c10d0ba0ab22a051809afddb9b53e7f51cbb69df91e1bf9e1653652",
+        "fixes": ["mirrorZ"]
+      }
+    },
+    {
+      "id": "juanita",
+      "name": "Juanita",
+      "file": "juanita.vrm",
+      "style": {
+        "form": "lowpoly",
+        "surface": "toon"
+      },
+      "about": "A tiny chibi girl with pink space buns and a backpack, with a full set of faces. From 100Avatars, free to use (CC0).",
+      "source": {
+        "author": "Polygonal Mind",
+        "collection": "100Avatars R3 (#252)",
+        "url": "https://github.com/ToxSam/open-source-avatars",
+        "license": "CC0",
+        "download": "https://arweave.net/nyMyZZx5lN2DXsmBgbGQSnt3PuXYN7AAjz9QJrjitLo",
+        "sha256": "95d9f7cbf72ee5d46d15f932c8ee5d1986d70242589ad2efadfe81a2089da98f",
+        "fixes": ["mirrorZ"]
+      }
+    }
+  ]
+}

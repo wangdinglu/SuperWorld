@@ -612,6 +612,12 @@ button {
   gap: 8px;
   max-width: calc(100vw - 24px);
 }
+/* On narrow screens the action buttons wrap into two rows: stay above them. */
+@media (max-width: 640px) {
+  .use-bar {
+    bottom: calc(max(12px, env(safe-area-inset-bottom)) + 136px);
+  }
+}
 .use {
   padding: 10px 16px;
   white-space: nowrap;
@@ -662,4 +668,66 @@ button {
   margin: 0;
   line-height: 1.5;
   white-space: pre-wrap;
+}
+
+/* Avatar picker: one card per avatar, tinted by its style's palette */
+.avatars {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 8px;
+}
+.avatar-card {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 4px 8px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  outline: 1px solid var(--line);
+  background: color-mix(in srgb, var(--tint) 45%, transparent);
+  color: var(--ink);
+  min-width: 0;
+}
+.avatar-card[aria-checked="true"] {
+  border-color: var(--surface);
+  outline: 3px solid var(--accent);
+}
+.avatar-card img {
+  width: 100%;
+  max-width: 96px;
+  height: auto;
+  aspect-ratio: 1;
+}
+.avatar-card b {
+  font-size: 14px;
+}
+.avatar-style {
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--muted);
+  text-align: center;
+}
+.avatar-palette {
+  display: flex;
+  gap: 3px;
+  margin-top: 2px;
+}
+.avatar-palette i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  outline: 1px solid rgba(0, 0, 0, 0.15);
+}
+.panel.avatar-panel {
+  left: auto;
+  right: max(12px, env(safe-area-inset-right));
+  top: auto;
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 64px);
+  width: min(420px, calc(100vw - 24px));
+}
+.avatar-about {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
 }

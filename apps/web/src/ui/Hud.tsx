@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { CHAT_MAX, EMOTES, type Emote } from "@superworld/protocol";
+import { avatarEntry } from "../avatars.ts";
 import type { Game } from "../game.ts";
 import {
   cameraLevel,
@@ -9,6 +10,7 @@ import {
   hint,
   interaction,
   muted,
+  myAvatar,
   people,
   personKey,
   ping,
@@ -18,6 +20,7 @@ import {
   soloMode,
   toggleMute,
 } from "../store.ts";
+import { AvatarPicker } from "./AvatarPicker.tsx";
 import { Joystick } from "./Joystick.tsx";
 import { AccountPanel } from "./AccountPanel.tsx";
 import { BagPanel } from "./BagPanel.tsx";
@@ -38,9 +41,9 @@ export function Hud(props: { game: Game }) {
   const { game } = props;
   const [showPeople, setShowPeople] = useState(false);
   const [showEmotes, setShowEmotes] = useState(false);
-  const [panel, setPanel] = useState<"none" | "account" | "spaces" | "build" | "people" | "bag">(
-    "none",
-  );
+  const [panel, setPanel] = useState<
+    "none" | "account" | "spaces" | "build" | "people" | "bag" | "avatar"
+  >("none");
   const showAccount = panel === "account";
   const toggle = (p: typeof panel) => setPanel(panel === p ? "none" : p);
   const [draft, setDraft] = useState("");
@@ -208,6 +211,18 @@ export function Hud(props: { game: Game }) {
         </form>
       ) : null}
 
+      {panel === "avatar" && (
+        <div class="card panel avatar-panel">
+          <h2>Avatar</h2>
+          <AvatarPicker
+            label="Switch avatar"
+            selected={myAvatar.value}
+            onPick={(id) => game.switchAvatar(id)}
+          />
+          {myAvatar.value && <p class="avatar-about">{avatarEntry(myAvatar.value).about}</p>}
+        </div>
+      )}
+
       <div class="actions">
         {showEmotes && (
           <div class="emotes card">
@@ -239,9 +254,23 @@ export function Hud(props: { game: Game }) {
           class="round"
           aria-label="Emotes"
           aria-expanded={showEmotes}
-          onClick={() => setShowEmotes(!showEmotes)}
+          onClick={() => {
+            setShowEmotes(!showEmotes);
+            if (panel === "avatar") setPanel("none");
+          }}
         >
           🙂
+        </button>
+        <button
+          class="round"
+          aria-label="Avatar"
+          aria-expanded={panel === "avatar"}
+          onClick={() => {
+            toggle("avatar");
+            setShowEmotes(false);
+          }}
+        >
+          🎭
         </button>
         <button
           class="round"

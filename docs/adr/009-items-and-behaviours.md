@@ -1,4 +1,4 @@
-# ADR-008: Items and behaviours as data
+# ADR-009: Items and behaviours as data
 
 **Status:** Accepted · 4 Oct 2026
 
@@ -13,4 +13,4 @@
 - **Inventory** is a `jsonb` list on `users` (at most 12, newest last), so items follow a player between places; you can only equip what you have. Solo practice keeps it in local storage.
 - **Sounds are synthesised** with Web Audio, so there are no audio assets to host or license.
 
-**Consequences.** Templates, the SDK and the agent get behaviours for free (`library_list_templates` says what each object does; `scene_set_text` writes notices). Loose items don't collide with objects, only the ground, which is fine for balls but not for physics toys; real physics props can come with the arena. The protocol version went to 2.
+**Consequences.** Templates, the SDK and the agent get behaviours for free (`library_list_templates` says what each object does; `scene_set_text` writes notices). Loose items don't collide with objects, only the ground, which is fine for balls but not for physics toys; real physics props can come with the arena. The protocol version went up (to 3, together with the avatar field).

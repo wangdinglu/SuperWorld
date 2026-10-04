@@ -10,31 +10,37 @@ import "./styles.css";
 const canvas = document.getElementById("stage") as HTMLCanvasElement;
 let game: Game | undefined;
 
-async function startGame(token: string | null, name: string, colour: string): Promise<void> {
+async function startGame(
+  token: string | null,
+  name: string,
+  colour: string,
+  avatar: string,
+): Promise<void> {
   // The 3D engine, physics and netcode load only now, so the sign-in screen appears fast.
   const { Game } = await import("./game.ts");
   game ??= new Game(canvas);
-  await game.start(token, name, colour);
+  await game.start(token, name, colour, avatar);
 }
 
-async function enter(name: string, colour: string, solo = false): Promise<void> {
+async function enter(name: string, colour: string, avatar: string, solo = false): Promise<void> {
   save("name", name);
   save("colour", colour);
+  save("avatar", avatar);
   errorMessage.value = "";
   status.value = "connecting";
   try {
     if (solo) {
-      await startGame(null, name, colour);
+      await startGame(null, name, colour, avatar);
       return;
     }
     const session = await signIn(name, colour);
-    await startGame(session.token, session.user.name, session.user.colour);
+    await startGame(session.token, session.user.name, session.user.colour, avatar);
   } catch (err) {
     let failure = err;
     if (err instanceof NoServerError) {
       // A static host (e.g. GitHub Pages) with no game server: explore solo instead.
       try {
-        await startGame(null, name, colour);
+        await startGame(null, name, colour, avatar);
         return;
       } catch (soloErr) {
         failure = soloErr;
@@ -71,8 +77,8 @@ function App() {
       busy={status.value === "connecting"}
       error={errorMessage.value}
       notice={notice.value}
-      onEnter={(n, c) => void enter(n, c)}
-      onSolo={(n, c) => void enter(n, c, true)}
+      onEnter={(n, c, a) => void enter(n, c, a)}
+      onSolo={(n, c, a) => void enter(n, c, a, true)}
     />
   );
 }

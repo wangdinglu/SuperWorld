@@ -3,7 +3,7 @@ import type { MoveCommand } from "@superworld/core";
 import { z } from "zod";
 
 /** Bumped whenever the wire format changes. Clients with another version are asked to reload. */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 /** Room name per place kind. */
 export const ROOM = { plaza: "plaza", space: "space" } as const;
@@ -29,12 +29,14 @@ export const Player = schema(
     hand: t.string(),
     /** Item template worn on the head, or "". */
     head: t.string(),
+    /** Avatar id from content/avatars/avatars.json. */
+    avatar: t.string(),
   },
   "Player",
 );
 export type Player = InstanceType<typeof Player>;
 
-/** Fields the client predicts and reconciles. Strings (name, colour) stay server-only. */
+/** Fields the client predicts and reconciles. Strings (name, colour, avatar) stay server-only. */
 export const PREDICTED_FIELDS = ["x", "y", "z", "vy", "yaw", "grounded"] as const;
 
 /** A loose item: thrown, or lying where it landed until someone picks it up. */
@@ -95,18 +97,25 @@ export type Animation = Emote | "throw" | "play";
 export const NAME_MAX = 20;
 export const CHAT_MAX = 200;
 
+/** An avatar id; the server checks it against the avatar library. */
+export const AvatarId = z.string().regex(/^[a-z0-9][a-z0-9_-]{0,31}$/);
+
 export const JoinOptions = z.object({
   /** Which space to join (space rooms only). */
   placeId: SpaceId.optional(),
   protocol: z.number().int(),
   name: z.string().trim().min(1).max(NAME_MAX),
   colour: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  /** Unknown or missing: the library's default avatar. */
+  avatar: AvatarId.optional(),
 });
 export type JoinOptions = z.infer<typeof JoinOptions>;
 
 /** Client → server messages (besides input). */
 export const ChatMessage = z.object({ text: z.string().trim().min(1).max(CHAT_MAX) });
 export const EmoteMessage = z.object({ emote: z.enum(EMOTES) });
+/** Switch to another avatar from the library. */
+export const AvatarMessage = z.object({ avatar: AvatarId });
 export const ReportMessage = z.object({
   sessionId: z.string().max(64),
   reason: z.string().max(200),

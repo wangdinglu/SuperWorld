@@ -1,6 +1,6 @@
 # ADR-004: Phase 1 scope choices
 
-**Status:** Accepted · 3 Oct 2026
+**Status:** Accepted · 3 Oct 2026 · the avatar choice is superseded by [ADR-008](008-vrm-avatars.md)
 
 **Decision.**
 

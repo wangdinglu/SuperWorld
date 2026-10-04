@@ -25,6 +25,7 @@ import {
   AdmitMessage,
   AgentMessage,
   type AgentReplyMessage,
+  AvatarMessage,
   ChatMessage,
   EditMessage,
   EmoteMessage,
@@ -131,6 +132,7 @@ export class PlaceRoom extends Room<{
   private readonly inventories = new Map<string, string[]>();
   /** Which note each instrument plays next. */
   private readonly notes = new Map<string, number>();
+  private readonly avatarLimit = new RateLimiter(3, 5_000);
   private tickCount = 0;
   private stepMs = 0;
 
@@ -220,6 +222,14 @@ export class PlaceRoom extends Room<{
       if (!parsed.success || !this.emoteLimit.allow(client.sessionId)) return;
       const payload: EmoteBroadcast = { sessionId: client.sessionId, emote: parsed.data.emote };
       this.broadcast("emote", payload);
+    });
+
+    this.onMessage("avatar", (client, message: unknown) => {
+      const parsed = AvatarMessage.safeParse(message);
+      if (!parsed.success || !this.isAvatar(parsed.data.avatar)) return;
+      if (!this.avatarLimit.allow(client.sessionId)) return;
+      const player = this.state.players.get(client.sessionId);
+      if (player) player.avatar = parsed.data.avatar;
     });
 
     this.onMessage("telemetry", (client, message: unknown) => {
@@ -531,8 +541,13 @@ export class PlaceRoom extends Room<{
     return { ...identity, kind: user.kind, name: user.displayName, colour: user.colour };
   }
 
-  override async onJoin(client: Client<{ auth: Identity }>): Promise<void> {
+  private isAvatar(id: string): boolean {
+    return this.options.content.avatars.avatars.some((a) => a.id === id);
+  }
+
+  override async onJoin(client: Client<{ auth: Identity }>, options?: unknown): Promise<void> {
     const identity = client.auth!;
+    const wanted = JoinOptions.safeParse(options).data?.avatar;
     const [x, y, z] = this.world.spawnPosition(this.rng(), this.rng());
     const player = new Player();
     Object.assign(player, {
@@ -547,6 +562,7 @@ export class PlaceRoom extends Room<{
       seat: "",
       hand: "",
       head: "",
+      avatar: wanted && this.isAvatar(wanted) ? wanted : this.options.content.avatars.default,
     });
     this.state.players.set(client.sessionId, player);
     this.world.addAvatar(client.sessionId, player);
@@ -577,6 +593,7 @@ export class PlaceRoom extends Room<{
     this.interactLimit.forget(client.sessionId);
     this.throwLimit.forget(client.sessionId);
     this.inventories.delete(client.sessionId);
+    this.avatarLimit.forget(client.sessionId);
     this.updateInterest();
   }
 

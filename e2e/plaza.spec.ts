@@ -33,6 +33,15 @@ test("a laptop and a phone meet in the plaza", async ({ browser }) => {
     timeout: 10_000,
   });
 
+  // Both start as the default avatar; the laptop switches, and the phone sees the change.
+  type Hook = { __superworld: { avatars(): Record<string, string> } };
+  const shownOnPhone = () =>
+    phone.evaluate(() => (window as unknown as Hook).__superworld.avatars().Laptop);
+  await expect.poll(shownOnPhone, { timeout: 30_000 }).toBe("sprout");
+  await laptop.getByRole("button", { name: "Avatar", exact: true }).click();
+  await laptop.getByRole("radio", { name: /Inky/ }).click();
+  await expect.poll(shownOnPhone, { timeout: 30_000 }).toBe("inky");
+
   await phoneContext.close();
   await laptop.close();
 });
@@ -61,6 +70,8 @@ test("walking moves the avatar on the server", async ({ browser }) => {
     Math.hypot(after.x - before.x, after.z - before.z),
     `inputs ${JSON.stringify(stats)}, focus ${focus}`,
   ).toBeGreaterThan(0.5);
+  // A page left open keeps rendering and slows the next test's software renderer.
+  await page.close();
 });
 
 test("a player takes a ball, throws it and keeps it in the bag", async ({ browser }) => {
@@ -82,6 +93,7 @@ test("a player takes a ball, throws it and keeps it in the bag", async ({ browse
   await page.screenshot({ path: "test-results/items-basket.png" });
   await page.keyboard.press("KeyE");
   await expect.poll(() => hook((h) => h.me().hand), { timeout: 10_000 }).toBe("item/ball");
+  await page.screenshot({ path: "test-results/items-held.png" });
 
   await page.getByRole("button", { name: /Throw/ }).click();
   await expect.poll(() => hook((h) => h.props()), { timeout: 10_000 }).toBe(1);

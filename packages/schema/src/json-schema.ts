@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AvatarLibrary } from "./avatar.ts";
 import { Scene } from "./scene.ts";
 import { TemplateLibrary } from "./template.ts";
 import { World } from "./world.ts";
@@ -9,5 +10,6 @@ export function jsonSchemas(): Record<string, unknown> {
     "superworld.world/1": z.toJSONSchema(World, { io: "input" }),
     "superworld.scene/1": z.toJSONSchema(Scene, { io: "input" }),
     "superworld.templates/1": z.toJSONSchema(TemplateLibrary, { io: "input" }),
+    "superworld.avatars/1": z.toJSONSchema(AvatarLibrary, { io: "input" }),
   };
 }

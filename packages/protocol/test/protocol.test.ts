@@ -23,4 +23,12 @@ describe("JoinOptions", () => {
     expect(JoinOptions.safeParse({ protocol: 1, name: "Ada", colour: "red" }).success).toBe(false);
     expect(JoinOptions.safeParse({ protocol: 1, name: "", colour: "#ff8800" }).success).toBe(false);
   });
+
+  it("takes an optional avatar id, and only a slug", () => {
+    const base = { protocol: 1, name: "Ada", colour: "#ff8800" };
+    expect(JoinOptions.parse(base).avatar).toBeUndefined();
+    expect(JoinOptions.parse({ ...base, avatar: "inky" }).avatar).toBe("inky");
+    expect(JoinOptions.safeParse({ ...base, avatar: "../evil" }).success).toBe(false);
+    expect(JoinOptions.safeParse({ ...base, avatar: "x".repeat(40) }).success).toBe(false);
+  });
 });

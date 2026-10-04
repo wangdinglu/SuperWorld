@@ -41,6 +41,7 @@ import {
 } from "@superworld/protocol";
 import {
   applyTier,
+  Avatar,
   type BuiltPlace,
   buildPlace,
   buildTemplateObject,
@@ -49,17 +50,18 @@ import {
   detectTier,
   fogFor,
   FrameGovernor,
-  Mannequin,
+  skyEnvironment,
   type Tier,
   TIERS,
 } from "@superworld/render";
 import { type ResolvedStyle, Scene, TemplateLibrary, World } from "@superworld/schema";
 import { applyPatch, type PatchOp } from "@superworld/sdk";
-import { resolveStyle } from "@superworld/style";
+import { colourOf, LIGHT_RIGS, resolveStyle } from "@superworld/style";
 import * as THREE from "three/webgpu";
 import plazaJson from "../../../content/world/plaza.scene.json";
 import templatesJson from "../../../content/world/templates.json";
 import worldJson from "../../../content/world/world.json";
+import { avatarEntry, avatarUrl } from "./avatars.ts";
 import { serverUrl } from "./config.ts";
 import { account } from "./account.ts";
 import { InputController } from "./input.ts";
@@ -78,6 +80,7 @@ import {
   inventory,
   knocks,
   muted,
+  myAvatar,
   people,
   personKey,
   ping,
@@ -120,7 +123,9 @@ const BUBBLE_MS = 6000;
 
 interface AvatarView {
   player: Player;
-  mannequin: Mannequin;
+  avatar: Avatar;
+  /** Stops listening for this player's avatar changes. */
+  unlisten: () => void;
   tag: HTMLDivElement;
   bubble: HTMLDivElement;
   bubbleUntil: number;
@@ -154,7 +159,7 @@ export class Game {
   private currentInteraction: Interaction | undefined;
   /** The seat I stood up from before the server confirmed it (see setupPrediction). */
   private leftSeat = "";
-  private profile = { name: "", colour: "" };
+  private profile = { name: "", colour: "", avatar: "" };
   private readonly avatars = new Map<string, AvatarView>();
   private pickables: THREE.Object3D[] = [];
   private tapTarget: { x: number; z: number } | undefined;
@@ -166,11 +171,13 @@ export class Game {
   private sun!: THREE.DirectionalLight;
   private readonly raycaster = new THREE.Raycaster();
   private readonly tagLayer = document.getElementById("tags")!;
+  /** What physically based avatar materials reflect: the place's sky. */
+  private environment: THREE.Texture | undefined;
 
   constructor(private readonly canvas: HTMLCanvasElement) {}
 
   /** Starts the game. With no token, runs solo practice entirely in the browser (no server). */
-  async start(token: string | null, name: string, colour: string): Promise<void> {
+  async start(token: string | null, name: string, colour: string, avatar: string): Promise<void> {
     status.value = "connecting";
     this.tier = detectTier();
     const { renderer, backend } = await createRenderer(this.canvas, this.tier);
@@ -199,7 +206,7 @@ export class Game {
     addEventListener("resize", () => this.resize());
 
     await initPhysics();
-    this.profile = { name, colour };
+    this.profile = { name, colour, avatar: avatarEntry(avatar).id };
 
     if (token) {
       this.client = new Client(serverUrl());
@@ -219,7 +226,7 @@ export class Game {
       }
     } else {
       this.showScene(plazaScene);
-      this.startSolo(name, colour);
+      this.startSolo(name, colour, avatar);
     }
 
     this.input = new InputController(this.canvas, {
@@ -254,6 +261,14 @@ export class Game {
         name: this.room?.name,
         players: this.room?.state.players?.size,
       }),
+      /** Which avatar each player is shown as, once its model has loaded: name → avatar id. */
+      avatars: () =>
+        Object.fromEntries(
+          [...this.avatars.values()].map((v) => [
+            v.player.name,
+            v.avatar.shown ? avatarEntry(v.player.avatar).id : "",
+          ]),
+        ),
     };
 
     status.value = "playing";
@@ -275,6 +290,7 @@ export class Game {
       protocol: PROTOCOL_VERSION,
       name: this.profile.name,
       colour: this.profile.colour,
+      avatar: this.profile.avatar,
       ...(to.kind === "space" ? { placeId: to.spaceId } : {}),
     };
     let next: Room;
@@ -356,6 +372,8 @@ export class Game {
     this.pickables = this.built.pickables;
     this.sun = this.built.sun;
     this.sun.castShadow = TIERS[this.tier].shadows === "realtime";
+    const rig = LIGHT_RIGS[style.light];
+    this.environment = skyEnvironment(rig.skyTop, rig.skyBottom, colourOf("ground", style));
 
     const physics = PlaceWorld.build(next, templates);
     const me = this.myId ? this.currentMe() : undefined;
@@ -383,14 +401,15 @@ export class Game {
       if (view) {
         view.bubble.textContent = m.text;
         view.bubbleUntil = performance.now() + BUBBLE_MS;
+        view.avatar.talk(talkSeconds(m.text));
       }
     });
     this.room.onMessage("emote", (m: EmoteBroadcast) => {
-      this.avatars.get(m.sessionId)?.mannequin.playEmote(m.emote);
+      this.avatars.get(m.sessionId)?.avatar.playEmote(m.emote);
     });
     this.room.onMessage("play", (m: PlayBroadcast) => {
       const inst = this.scene.instances.find((i) => i.id === m.instance);
-      const me = this.avatars.get(this.myId)?.mannequin.root.position;
+      const me = this.avatars.get(this.myId)?.avatar.root.position;
       const d = inst && me ? Math.hypot(inst.at[0] - me.x, inst.at[2] - me.z) : 0;
       playNote(m.sound, m.note, 1 - d / 30);
     });
@@ -480,7 +499,7 @@ export class Game {
 
   // ---------- solo practice (no server) ----------
 
-  private startSolo(name: string, colour: string): void {
+  private startSolo(name: string, colour: string, avatar: string): void {
     this.solo = true;
     soloMode.value = true;
     this.myId = "solo";
@@ -497,6 +516,7 @@ export class Game {
       seat: "",
       hand: "",
       head: "",
+      avatar: avatarEntry(avatar).id,
     } as unknown as Player;
     inventory.value = load<string[]>("inventory", []).filter((i) => templateMap.has(i));
     this.soloMe = me;
@@ -561,9 +581,20 @@ export class Game {
 
   private addAvatar(sessionId: string, player: Player): void {
     if (this.avatars.has(sessionId)) return;
-    const mannequin = new Mannequin(player.colour, TIERS[this.tier].shadows === "realtime");
-    mannequin.root.position.set(player.x, player.y, player.z);
-    this.three.add(mannequin.root);
+    const avatar = new Avatar(avatarUrl(player.avatar), player.colour, {
+      castShadow: TIERS[this.tier].shadows === "realtime",
+      environment: this.environment,
+    });
+    avatar.root.position.set(player.x, player.y, player.z);
+    this.three.add(avatar.root);
+    if (sessionId === this.myId) myAvatar.value = avatarEntry(player.avatar).id;
+    // Online, the server confirms avatar switches through the player's state.
+    const unlisten = this.solo
+      ? () => {}
+      : Callbacks.get(this.room).listen(player, "avatar", (id: string) => {
+          avatar.setModel(avatarUrl(id));
+          if (sessionId === this.myId) myAvatar.value = avatarEntry(id).id;
+        });
     const tag = document.createElement("div");
     tag.className = "tag";
     const label = document.createElement("span");
@@ -577,7 +608,8 @@ export class Game {
     this.tagLayer.append(tag);
     this.avatars.set(sessionId, {
       player,
-      mannequin,
+      avatar,
+      unlisten,
       tag,
       bubble,
       bubbleUntil: 0,
@@ -593,10 +625,11 @@ export class Game {
   private removeAvatar(sessionId: string): void {
     const view = this.avatars.get(sessionId);
     if (!view) return;
-    this.three.remove(view.mannequin.root);
+    this.three.remove(view.avatar.root);
     view.held?.dispose();
     view.worn?.dispose();
-    view.mannequin.dispose();
+    view.avatar.dispose();
+    view.unlisten();
     view.tag.remove();
     this.avatars.delete(sessionId);
     this.refreshPeople();
@@ -624,6 +657,7 @@ export class Game {
       if (me) {
         me.bubble.textContent = trimmed.slice(0, 200);
         me.bubbleUntil = performance.now() + BUBBLE_MS;
+        me.avatar.talk(talkSeconds(trimmed));
       }
       return;
     }
@@ -631,8 +665,24 @@ export class Game {
   }
 
   emote(emote: Emote): void {
-    if (this.solo) this.avatars.get(this.myId)?.mannequin.playEmote(emote);
+    if (this.solo) this.avatars.get(this.myId)?.avatar.playEmote(emote);
     else this.room.send("emote", { emote });
+  }
+
+  /** Switches my avatar. Online the server confirms it, and everyone nearby sees the change. */
+  switchAvatar(id: string): void {
+    const entry = avatarEntry(id);
+    save("avatar", entry.id);
+    this.profile.avatar = entry.id;
+    if (!this.solo) {
+      this.room.send("avatar", { avatar: entry.id });
+      return;
+    }
+    const me = this.avatars.get(this.myId);
+    if (!me) return;
+    me.player.avatar = entry.id;
+    me.avatar.setModel(avatarUrl(entry.id));
+    myAvatar.value = entry.id;
   }
 
   report(sessionId: string, reason: string): void {
@@ -653,15 +703,15 @@ export class Game {
       view.hand = p.hand ?? "";
       view.held?.dispose();
       view.held = view.hand ? this.itemObject(view.hand) : undefined;
-      view.mannequin.setHeld(view.held?.object ?? null);
+      view.avatar.setHeld(view.held?.object ?? null);
     }
     if (view.head !== (p.head ?? "")) {
       view.head = p.head ?? "";
       view.worn?.dispose();
       view.worn = view.head ? this.itemObject(view.head) : undefined;
-      view.mannequin.setWorn(view.worn?.object ?? null);
+      view.avatar.setWorn(view.worn?.object ?? null);
     }
-    view.mannequin.setSeated(Boolean(p.seat));
+    view.avatar.setSeated(Boolean(p.seat));
     if (id === this.myId) {
       const canThrow = templateMap.get(view.hand)?.item?.use === "throw";
       const e = equipped.value;
@@ -752,7 +802,7 @@ export class Game {
         const n = this.soloNotes.get(i.instance) ?? 0;
         this.soloNotes.set(i.instance, n + 1);
         playNote(i.sound, i.notes[n % i.notes.length]!);
-        this.avatars.get(this.myId)?.mannequin.playEmote("play");
+        this.avatars.get(this.myId)?.avatar.playEmote("play");
         break;
       }
     }
@@ -778,7 +828,7 @@ export class Game {
       this.soloProps.delete(this.soloProps.keys().next().value!);
     this.soloProps.set(`p${this.nextSoloProp++}`, { ...throwFrom(me), item: me.hand });
     me.hand = "";
-    this.avatars.get(this.myId)?.mannequin.playEmote("throw");
+    this.avatars.get(this.myId)?.avatar.playEmote("throw");
   }
 
   /** Holds or wears an item from my inventory. */
@@ -846,7 +896,7 @@ export class Game {
   /** A point on the ground in front of me, far enough that an object of this template doesn't land on me. */
   spotAhead(templateId?: string): { x: number; z: number } {
     const distance = 2.5 + (templateId ? footprint(templateId) : 1.5);
-    const me = this.avatars.get(this.myId)?.mannequin.root.position;
+    const me = this.avatars.get(this.myId)?.avatar.root.position;
     const { forward } = this.rig.groundAxes();
     return {
       x: Math.round(((me?.x ?? 0) + forward[0] * distance) * 10) / 10,
@@ -948,7 +998,7 @@ export class Game {
       const x = this.value(p, "x");
       const y = this.value(p, "y");
       const z = this.value(p, "z");
-      const pos = view.mannequin.root.position;
+      const pos = view.avatar.root.position;
       pos.set(x, y, z);
       const moved = Math.hypot(x - view.lastPos.x, z - view.lastPos.z);
       view.speed += ((dt > 0 ? moved / dt : 0) - view.speed) * Math.min(1, dt * 10);
@@ -957,21 +1007,21 @@ export class Game {
       let diff = targetYaw - view.yaw;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       view.yaw += diff * Math.min(1, dt * 12);
-      view.mannequin.root.rotation.y = view.yaw;
+      view.avatar.root.rotation.y = view.yaw;
       this.syncItems(id, view);
-      view.mannequin.update(dt, view.speed, p.grounded || y < 0.05 || Boolean(p.seat));
+      view.avatar.update(dt, view.speed, p.grounded || y < 0.05 || Boolean(p.seat));
     }
     this.syncProps(dt);
 
     // 3. Camera, sun and overlays follow my avatar.
     const mine = this.avatars.get(this.myId);
     if (mine) {
-      this.rig.update(mine.mannequin.root.position, dt);
-      this.sunTarget.copy(mine.mannequin.root.position);
+      this.rig.update(mine.avatar.root.position, dt);
+      this.sunTarget.copy(mine.avatar.root.position);
       this.sun.target.position.copy(this.sunTarget);
       this.sun.position.set(this.sunTarget.x + 18, 60, this.sunTarget.z + 12);
-      this.updatePortalHint(mine.mannequin.root.position);
-      if (this.framesSinceReport % 6 === 0) this.updateInteraction(mine.mannequin.root.position);
+      this.updatePortalHint(mine.avatar.root.position);
+      if (this.framesSinceReport % 6 === 0) this.updateInteraction(mine.avatar.root.position);
     }
     this.updateTags(now);
     this.tapMarker.rotation.y += dt * 2;
@@ -985,8 +1035,8 @@ export class Game {
     const v = new THREE.Vector3();
     const overview = this.rig.level === "overview";
     for (const view of this.avatars.values()) {
-      v.copy(view.mannequin.root.position);
-      v.y += 2.1;
+      v.copy(view.avatar.root.position);
+      v.y += view.avatar.height + 0.35;
       const dist = v.distanceTo(cam.position);
       const isMuted = muted.value.includes(personKey(view.player));
       v.project(cam);
@@ -1028,3 +1078,6 @@ export class Game {
     this.rig?.resize(innerWidth / innerHeight);
   }
 }
+
+/** How long the mouth moves for a chat message. */
+const talkSeconds = (text: string) => 0.4 + text.length * 0.05;

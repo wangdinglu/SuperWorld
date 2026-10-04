@@ -1,0 +1,38 @@
+# Avatars
+
+The default avatar set. Most are VRM 1.0 files made in code by [`tools/avatars`](../../tools/avatars); the rest are downloaded CC0 avatars from Polygonal Mind's 100Avatars (see below). Every avatar is drawn in one style, coloured from that style's palette, and records its style in the file (`scenes[0].extras.superworld`). [`avatars.json`](avatars.json) lists them; `pnpm validate:content` checks each file against it.
+
+| Avatar                                     | Style (form / surface / palette) | What makes it that style                                                                                                                                                             |
+| ------------------------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ![Sprout](sprout.png) **Sprout** (default) | smooth / soft / meadow           | Rounded shapes, a wide gentle shading gradient, no outlines: the plaza's own look. A leaf sways on spring bones.                                                                     |
+| ![Pip](pip.png) **Pip**                    | lowpoly / toon / candy           | Few segments and flat facets, hard two-tone cel shading pushed toward the palette's purple, thick outlines. A bouncy tail.                                                           |
+| ![Inky](inky.png) **Inky**                 | smooth / ink / mono              | Paper-white body painted with handwriting, cross-hatching in the shadows instead of a shade colour, brush outlines that swell and thin, ink-dipped hands and feet, pen-stroke blush. |
+| ![Bolt](bolt.png) **Bolt**                 | voxel / pbr / dusk               | Built only from boxes, physically based metal, glass and emissive materials, and an LED dot-matrix face whose pixels rearrange into each expression.                                 |
+
+| ![Polybot](polybot.png) **Polybot** (downloaded) | lowpoly / toon (its own textures) | Avatar #051 of Polygonal Mind's [100Avatars](https://github.com/ToxSam/open-source-avatars) collection, CC0 (no attribution required). VRM 0.x, about 2.1k triangles. |
+| ![Rose](rose.png) ![Erika](erika.png) ![Kate](kate.png) ![Witch](witch.png) **Rose, Erika, Kate, Witch** (downloaded) | lowpoly / toon (their own textures) | 100Avatars R1 (#057, #053, #038, #039), CC0. VRM 0.x, 1.4–2.4 MB, 4k–5.6k triangles; blink and visemes. |
+| ![Juanita](juanita.png) **Juanita** (downloaded) | lowpoly / toon (her own textures) | 100Avatars R3 (#252), CC0. VRM 0.x, 5.9 MB, 13.5k triangles: heavier, but with emotion faces too. |
+
+Every avatar made in code has:
+
+- the VRM humanoid skeleton in T-pose facing +Z, so standard VRM animations play on it;
+- every preset expression (`blink`, `blinkLeft`, `blinkRight`, `happy`, `angry`, `sad`, `relaxed`, `surprised`, and the visemes `aa`, `ih`, `ou`, `ee`, `oh`);
+- bone look-at for the eyes, and spring bones (leaf, tail, tuft, antenna);
+- an `Accent` material that the game tints in the player's colour;
+- VRM licence metadata letting anyone use, modify and redistribute it, commercially included, with no credit required.
+
+## Downloaded avatars
+
+An entry with a `source` was made by someone else. It names the author, the licence (CC0 or CC-BY only), the original `download` URL, its pinned `sha256`, and the `fixes` that make it meet the VRM spec. `pnpm avatars:import` downloads it again, refuses it if the bytes changed, and applies the fixes ([`tools/avatars/import.ts`](../../tools/avatars/import.ts)):
+
+- `mirrorZ`: the exporter wrote these avatars facing +Z while its skeleton was labelled for −Z (left and right swapped), so it is mirrored along Z.
+- `tPose`: Polybot was rigged in an A-pose (arms 38° down); the arms are raised and the T-pose baked in as the rest pose.
+
+Materials, expressions (blink and the visemes; it has no emotions) and the author's licence metadata are kept as they are. `pnpm validate:content` checks that the file's own licence matches the library and lets everyone use it.
+
+## Changing or adding an avatar
+
+1. Edit or add a builder in `tools/avatars/` (and list it in `tools/avatars/build.ts`) and an entry in `avatars.json`.
+2. `pnpm avatars` builds the VRM files.
+3. `pnpm avatars:thumbnails` renders the picker thumbnails with three.js and three-vrm in headless Chromium (set `PLAYWRIGHT_CHROMIUM_PATH` if Playwright's own browser isn't installed; add `--review <dir>` for a sheet of views and every expression), then run `pnpm avatars` again to embed them.
+4. `pnpm validate:content`.

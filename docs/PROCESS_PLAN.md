@@ -3,7 +3,7 @@
 > **Status:** draft for review · 3 Oct 2026
 > How we build [ARCHITECTURE.md](ARCHITECTURE.md), step by step. Every phase ships something playable and ends at a gate from the [plan](plan/index.html).
 >
-> **Status (3 Oct 2026):** Phase 1 is complete and live at https://wangdinglu.github.io/SuperWorld/ (solo practice until a game server is connected). Phase 2 is in progress: M2.1 (accounts), M2.4 (Creator SDK), M2.5 (private spaces with a build panel), M2.6 (the building agent) and M2.8 (items and behaviours: sit, take, hold, throw, wear, play, read, with an inventory) are done. The agent needs `ANTHROPIC_API_KEY` and `AGENT_MODEL` on the server, and an eval set of real requests before quotas are final. M2.2/M2.3/M2.7 (asset pipeline, VRM, generated avatars) follow, so players can build with the existing objects first.
+> **Status (3 Oct 2026):** Phase 1 is complete and live at https://wangdinglu.github.io/SuperWorld/ (solo practice until a game server is connected). Phase 2 is in progress: M2.1 (accounts), M2.4 (Creator SDK), M2.5 (private spaces with a build panel), M2.6 (the building agent) and M2.8 (items and behaviours: sit, take, hold, throw, wear, play, read, with an inventory) are done. The agent needs `ANTHROPIC_API_KEY` and `AGENT_MODEL` on the server, and an eval set of real requests before quotas are final. VRM avatars and the picker landed early (ADR-008); the rest of M2.2/M2.3/M2.7 (asset pipeline, sprites, generated avatars) is in a separate track.
 
 ## At a glance
 
@@ -75,7 +75,7 @@ _Done when_ editing `plaza.scene.json` changes both what you see and what you bu
 
 - [x] `WebGPURenderer` with WebGL2 fallback; tier detection and the frame-time governor
 - [x] `style` resolver v1 and its mapping to light, sky, palette and surface (the outline post-effect moves to M2.9, see ADR-004)
-- [x] Procedural mannequin avatar: idle, walk, run, jump and four emotes, coloured per player
+- [x] Procedural mannequin avatar: idle, walk, run, jump and four emotes, coloured per player (replaced by VRM avatars, ADR-008)
 - [x] Camera rig: walk ↔ overview with continuous zoom (wheel, pinch, `M`); click or tap to move in overview
 
 _Done when_ one player can walk and tap-to-move around the plaza at 60 fps on desktop and 30 fps on the low tier in device emulation (real phones come in M1.6).
@@ -126,7 +126,7 @@ _Done when_ the plaza holds 30 fps on a mid-range phone with 50 players in the s
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | M2.1 Persistence and accounts ✅ | Postgres with Drizzle (embedded PGlite for development), guest → member by email link, places and revisions. Object storage moves to M2.2 | a player's data survives a server restart                                                                 |
 | M2.2 Asset pipeline              | validate → optimise → collider → bake → moderate → publish jobs                                                                           | an uploaded glTF appears within budget with sprites and a thumbnail; a rejected one never shows to others |
-| M2.3 VRM avatars                 | three-vrm, a default avatar set, VRM animation emotes, 2D sprites                                                                         | players pick a VRM avatar and see each other's in 3D and 2D                                               |
+| M2.3 VRM avatars                 | three-vrm, a default avatar set, VRM animation emotes, 2D sprites (three-vrm, the set and the picker done early: ADR-008)                 | players pick a VRM avatar and see each other's in 3D and 2D                                               |
 | M2.4 Creator SDK v1 ✅           | tool registry, patch log, budgets, draft / accept / undo, API door                                                                        | every tool has schema and budget tests; undo restores the exact previous revision                         |
 | M2.5 Private spaces ✅           | space rooms that start and stop on demand, access policies, knocking, links, revisions                                                    | a friend knocks, gets let in, and watches edits happen live                                               |
 | M2.6 Building agent ✅           | agent panel, Claude tool use over the SDK, async jobs, an eval set, quotas, logs                                                          | one sentence becomes a themed room within budget, and every step can be undone                            |

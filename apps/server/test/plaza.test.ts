@@ -52,10 +52,15 @@ async function api(path: string, body?: unknown, token?: string, method = body ?
   return { status: res.status, body: (await res.json()) as Record<string, any> };
 }
 
-async function join(name: string): Promise<Room> {
+async function join(name: string, avatar?: string): Promise<Room> {
   const client = new Client(base);
   client.auth.token = await guest(name);
-  return client.joinOrCreate("plaza", { protocol: PROTOCOL_VERSION, name, colour: "#3366ff" });
+  return client.joinOrCreate("plaza", {
+    protocol: PROTOCOL_VERSION,
+    name,
+    colour: "#3366ff",
+    ...(avatar ? { avatar } : {}),
+  });
 }
 
 async function until(check: () => boolean, timeoutMs = 3000): Promise<void> {
@@ -114,6 +119,28 @@ describe("plaza room", () => {
     a.send("chat", { text: "hello shit world" });
     await until(() => received.length === 1);
     expect(received[0]).toMatchObject({ name: "Ada", text: "hello **** world" });
+  });
+
+  it("starts players as the default avatar and lets them switch to a listed one", async () => {
+    const a = rooms[0]!;
+    const b = rooms[1]!;
+    const aOnB = () => b.state.players.get(a.sessionId);
+    expect(a.state.players.get(a.sessionId).avatar).toBe("sprout");
+    a.send("avatar", { avatar: "inky" });
+    await until(() => aOnB()?.avatar === "inky");
+    a.send("avatar", { avatar: "not-an-avatar" });
+    a.send("avatar", { avatar: "../../etc" });
+    await sleep(150);
+    expect(aOnB()?.avatar).toBe("inky");
+
+    const c = await join("Lin", "bolt");
+    rooms.push(c);
+    await until(() => c.state.players?.get(c.sessionId) !== undefined);
+    expect(c.state.players.get(c.sessionId).avatar).toBe("bolt");
+    const d = await join("Kim", "nobody");
+    rooms.push(d);
+    await until(() => d.state.players?.get(d.sessionId) !== undefined);
+    expect(d.state.players.get(d.sessionId).avatar).toBe("sprout");
   });
 
   it("accepts valid telemetry and ignores malformed telemetry", async () => {
