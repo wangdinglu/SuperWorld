@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { ColourRef, Id, Vec3 } from "./common.ts";
 
+/** A special material for a part, beyond what the style's surface topic gives it. */
+export const Finish = z.enum(["metal", "glass", "water", "hologram"]);
+export type Finish = z.infer<typeof Finish>;
+
 const PartBase = {
   /** Offset from the instance origin. */
   at: Vec3.default([0, 0, 0]),
@@ -11,6 +15,7 @@ const PartBase = {
   solid: z.boolean().default(false),
   /** Glows (lamps, signs). */
   emissive: z.boolean().default(false),
+  finish: Finish.optional(),
 };
 
 /** Primitive shapes. Phase 1 builds every template from these; models arrive in Phase 2. */

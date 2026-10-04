@@ -2,14 +2,28 @@ import * as THREE from "three/webgpu";
 import type { Part, ResolvedStyle, Scene, Template, TemplateLibrary } from "@superworld/schema";
 import { colourOf, LIGHT_RIGS } from "@superworld/style";
 import { placePart } from "@superworld/core";
+import { buildAtmosphere } from "./atmosphere.ts";
+import { materialFor, type MaterialQuality, outlineMaterial, wantsOutline } from "./materials.ts";
+import { type Tier, TIERS } from "./tier.ts";
 
 export interface BuiltPlace {
   root: THREE.Group;
   sun: THREE.DirectionalLight;
   /** Meshes the pointer can hit for tap-to-move (the ground). */
   pickables: THREE.Object3D[];
+  /** Animates the atmosphere around a point (the camera's target). Call once per frame. */
+  update(dt: number, around: THREE.Vector3): void;
   dispose(): void;
 }
+
+export interface BuildOptions {
+  tier?: Tier;
+  /** Reflections for metal, glass and water. */
+  environment?: THREE.Texture;
+}
+
+/** Parts that get an ink outline: solid-looking ones, not glows, glass, water or holograms. */
+const outlined = (part: Part) => !part.emissive && !part.finish;
 
 /** Curve detail per form topic: low-poly is faceted, voxel turns every shape into boxes. */
 function segments(style: ResolvedStyle): number {
@@ -38,42 +52,6 @@ function geometryFor(part: Part, style: ResolvedStyle): THREE.BufferGeometry {
     case "cone":
       return new THREE.ConeGeometry(part.radius, part.height, seg);
   }
-}
-
-const materialCache = new Map<string, THREE.Material>();
-
-/** Library materials per surface topic. Shared and cached, so many objects cost few materials. */
-export function materialFor(
-  colour: string,
-  style: ResolvedStyle,
-  emissive = false,
-): THREE.Material {
-  const key = `${colour}|${style.surface}|${style.form}|${emissive}`;
-  const cached = materialCache.get(key);
-  if (cached) return cached;
-  const flatShading = style.form === "lowpoly";
-  let material: THREE.Material;
-  if (emissive) {
-    material = new THREE.MeshBasicMaterial({ color: colour });
-  } else if (style.surface === "toon" || style.surface === "ink") {
-    material = new THREE.MeshToonMaterial({
-      color:
-        style.surface === "ink"
-          ? new THREE.Color(colour).lerp(new THREE.Color("#ffffff"), 0.55)
-          : colour,
-    });
-  } else if (style.surface === "pbr") {
-    material = new THREE.MeshStandardMaterial({
-      color: colour,
-      roughness: 0.6,
-      metalness: 0.1,
-      flatShading,
-    });
-  } else {
-    material = new THREE.MeshLambertMaterial({ color: colour, flatShading });
-  }
-  materialCache.set(key, material);
-  return material;
 }
 
 function skyDome(style: ResolvedStyle): THREE.Mesh {
@@ -110,7 +88,12 @@ export function buildPlace(
   scene: Scene,
   library: TemplateLibrary,
   style: ResolvedStyle,
+  options: BuildOptions = {},
 ): BuiltPlace {
+  const tier = TIERS[options.tier ?? "medium"];
+  const quality: MaterialQuality = tier.materials;
+  const outlines = tier.outlines && wantsOutline(style);
+  const ink = colourOf("metal", style);
   const root = new THREE.Group();
   root.name = `place:${scene.place}`;
   const rig = LIGHT_RIGS[style.light];
@@ -164,7 +147,12 @@ export function buildPlace(
     template.parts.forEach((part, index) => {
       const geometry = geometryFor(part, style);
       disposables.push(geometry);
-      const material = materialFor(colourOf(part.colour, style), style, part.emissive);
+      const material = materialFor(colourOf(part.colour, style), style, {
+        emissive: part.emissive,
+        ...(part.finish ? { finish: part.finish } : {}),
+        quality,
+        ...(options.environment ? { environment: options.environment } : {}),
+      });
       const mesh = new THREE.InstancedMesh(geometry, material, instances.length);
       mesh.name = `${templateId}#${index}`;
       instances.forEach((inst, i) => {
@@ -177,17 +165,34 @@ export function buildPlace(
         );
         mesh.setMatrixAt(i, m);
       });
-      mesh.castShadow = !part.emissive && part.shape !== "cylinder" ? true : part.solid;
-      mesh.receiveShadow = true;
+      const seeThrough = part.finish === "glass" || part.finish === "hologram";
+      mesh.castShadow =
+        !seeThrough && (!part.emissive && part.shape !== "cylinder" ? true : part.solid);
+      mesh.receiveShadow = !seeThrough;
       mesh.computeBoundingSphere();
       root.add(mesh);
+      if (outlines && outlined(part)) {
+        // Same geometry and instance transforms, drawn inside out a little larger.
+        const hull = new THREE.InstancedMesh(geometry, outlineMaterial(ink), instances.length);
+        hull.instanceMatrix = mesh.instanceMatrix;
+        hull.boundingSphere = mesh.boundingSphere;
+        hull.name = `${mesh.name}:outline`;
+        root.add(hull);
+      }
     });
+  }
+
+  const atmosphere = buildAtmosphere(style, tier.particles);
+  if (atmosphere) {
+    root.add(atmosphere.object);
+    disposables.push(atmosphere);
   }
 
   return {
     root,
     sun,
     pickables: [ground],
+    update: (dt, around) => atmosphere?.update(dt, around),
     dispose() {
       for (const d of disposables) d.dispose();
     },
@@ -201,6 +206,7 @@ export function buildPlace(
 export function buildTemplateObject(
   template: Template,
   style: ResolvedStyle,
+  quality: MaterialQuality = "full",
 ): { object: THREE.Group; dispose(): void } {
   const object = new THREE.Group();
   object.name = template.id;
@@ -210,19 +216,15 @@ export function buildTemplateObject(
     geometries.push(geometry);
     const mesh = new THREE.Mesh(
       geometry,
-      materialFor(colourOf(part.colour, style), style, part.emissive),
+      materialFor(colourOf(part.colour, style), style, {
+        emissive: part.emissive,
+        ...(part.finish ? { finish: part.finish } : {}),
+        quality,
+      }),
     );
     mesh.position.set(...part.at);
     mesh.rotation.y = part.yaw;
     object.add(mesh);
   }
   return { object, dispose: () => geometries.forEach((g) => g.dispose()) };
-}
-
-/** Fog colour and range for the light topic. */
-export function fogFor(style: ResolvedStyle): THREE.Fog {
-  const rig = LIGHT_RIGS[style.light];
-  const near = style.atmosphere === "mist" ? 10 : 70;
-  const far = style.atmosphere === "mist" ? 90 : 260;
-  return new THREE.Fog(rig.fog, near, far);
 }

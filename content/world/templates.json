@@ -31,7 +31,8 @@
           "radius": 4.6,
           "height": 0.1,
           "at": [0, 0.76, 0],
-          "colour": "water"
+          "colour": "water",
+          "finish": "water"
         },
         {
           "shape": "cylinder",
@@ -493,6 +494,208 @@
           "size": [1.4, 0.8, 0.02],
           "colour": "light",
           "at": [0, 1.45, 0.04]
+        }
+      ]
+    },
+    {
+      "id": "prim/pond",
+      "name": "Pond",
+      "parts": [
+        {
+          "shape": "cylinder",
+          "radius": 3.2,
+          "height": 0.3,
+          "colour": "stone",
+          "at": [0, 0.15, 0],
+          "solid": true
+        },
+        {
+          "shape": "cylinder",
+          "radius": 2.9,
+          "height": 0.05,
+          "colour": "water",
+          "at": [0, 0.29, 0],
+          "finish": "water"
+        },
+        {
+          "shape": "sphere",
+          "radius": 0.35,
+          "colour": "leaf",
+          "at": [1.2, 0.32, 0.6]
+        },
+        {
+          "shape": "sphere",
+          "radius": 0.25,
+          "colour": "leaf",
+          "at": [-0.9, 0.32, -1.1]
+        }
+      ]
+    },
+    {
+      "id": "prim/glass-pavilion",
+      "name": "Glass pavilion",
+      "behaviours": [
+        {
+          "kind": "sit",
+          "seats": [
+            {
+              "at": [0, 0.18, 0.5],
+              "yaw": 0
+            }
+          ]
+        }
+      ],
+      "parts": [
+        {
+          "shape": "box",
+          "size": [4, 0.2, 4],
+          "colour": "stone",
+          "at": [0, 0.1, 0],
+          "solid": true
+        },
+        {
+          "shape": "box",
+          "size": [0.12, 2.6, 0.12],
+          "colour": "metal",
+          "at": [-1.9, 1.5, -1.9],
+          "solid": true,
+          "finish": "metal"
+        },
+        {
+          "shape": "box",
+          "size": [0.12, 2.6, 0.12],
+          "colour": "metal",
+          "at": [1.9, 1.5, -1.9],
+          "solid": true,
+          "finish": "metal"
+        },
+        {
+          "shape": "box",
+          "size": [0.12, 2.6, 0.12],
+          "colour": "metal",
+          "at": [-1.9, 1.5, 1.9],
+          "solid": true,
+          "finish": "metal"
+        },
+        {
+          "shape": "box",
+          "size": [0.12, 2.6, 0.12],
+          "colour": "metal",
+          "at": [1.9, 1.5, 1.9],
+          "solid": true,
+          "finish": "metal"
+        },
+        {
+          "shape": "box",
+          "size": [3.7, 2.5, 0.05],
+          "colour": "water",
+          "at": [0, 1.45, -1.9],
+          "solid": true,
+          "finish": "glass"
+        },
+        {
+          "shape": "box",
+          "size": [0.05, 2.5, 3.7],
+          "colour": "water",
+          "at": [-1.9, 1.45, 0],
+          "solid": true,
+          "finish": "glass"
+        },
+        {
+          "shape": "box",
+          "size": [0.05, 2.5, 3.7],
+          "colour": "water",
+          "at": [1.9, 1.45, 0],
+          "solid": true,
+          "finish": "glass"
+        },
+        {
+          "shape": "box",
+          "size": [4.3, 0.12, 4.3],
+          "colour": "water",
+          "at": [0, 2.85, 0],
+          "finish": "glass"
+        },
+        {
+          "shape": "box",
+          "size": [1.6, 0.12, 0.5],
+          "colour": "wood",
+          "at": [0, 0.47, 0.5],
+          "solid": true
+        }
+      ]
+    },
+    {
+      "id": "prim/holo-sign",
+      "name": "Hologram sign",
+      "parts": [
+        {
+          "shape": "cylinder",
+          "radius": 0.5,
+          "height": 0.25,
+          "colour": "metal",
+          "at": [0, 0.125, 0],
+          "solid": true,
+          "finish": "metal"
+        },
+        {
+          "shape": "cylinder",
+          "radius": 0.42,
+          "height": 0.03,
+          "colour": "accent",
+          "at": [0, 0.27, 0],
+          "emissive": true
+        },
+        {
+          "shape": "sphere",
+          "radius": 0.6,
+          "colour": "accent",
+          "at": [0, 1.4, 0],
+          "finish": "hologram"
+        },
+        {
+          "shape": "box",
+          "size": [1.6, 0.5, 0.02],
+          "colour": "accent",
+          "at": [0, 2.3, 0],
+          "finish": "hologram"
+        }
+      ]
+    },
+    {
+      "id": "prim/statue",
+      "name": "Statue",
+      "parts": [
+        {
+          "shape": "box",
+          "size": [1.2, 1, 1.2],
+          "colour": "stone",
+          "at": [0, 0.5, 0],
+          "solid": true
+        },
+        {
+          "shape": "cylinder",
+          "radius": 0.28,
+          "height": 1.1,
+          "colour": "metal",
+          "at": [0, 1.55, 0],
+          "solid": true,
+          "finish": "metal"
+        },
+        {
+          "shape": "sphere",
+          "radius": 0.3,
+          "colour": "metal",
+          "at": [0, 2.35, 0],
+          "finish": "metal"
+        },
+        {
+          "shape": "cone",
+          "radius": 0.45,
+          "height": 0.5,
+          "colour": "metal",
+          "at": [0, 2.8, 0],
+          "finish": "metal"
         }
       ]
     }

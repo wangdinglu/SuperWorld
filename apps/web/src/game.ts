@@ -51,6 +51,7 @@ import {
   fogFor,
   FrameGovernor,
   skyEnvironment,
+  StylePipeline,
   type Tier,
   TIERS,
 } from "@superworld/render";
@@ -173,6 +174,7 @@ export class Game {
   private readonly tagLayer = document.getElementById("tags")!;
   /** What physically based avatar materials reflect: the place's sky. */
   private environment: THREE.Texture | undefined;
+  private pipeline!: StylePipeline;
 
   constructor(private readonly canvas: HTMLCanvasElement) {}
 
@@ -187,6 +189,8 @@ export class Game {
       this.tier = tier;
       applyTier(this.renderer, tier);
       renderInfo.value = { backend, tier };
+      // Materials, outlines, particles and screen effects all depend on the tier.
+      this.showScene(this.scene);
     });
 
     this.tapMarker = new THREE.Mesh(
@@ -202,6 +206,7 @@ export class Game {
     this.three.add(this.tapMarker);
 
     this.rig = new CameraRig(innerWidth / innerHeight);
+    this.pipeline = new StylePipeline(this.renderer, this.three, this.rig.camera);
     this.resize();
     addEventListener("resize", () => this.resize());
 
@@ -250,6 +255,8 @@ export class Game {
         return p ? { x: p.x, y: p.y, z: p.z, seat: p.seat, hand: p.hand, head: p.head } : undefined;
       },
       props: () => [...this.currentProps()].length,
+      effects: () => this.pipeline.active,
+      outlines: () => Boolean(this.built?.root.children.some((o) => o.name.endsWith(":outline"))),
       /** Walks to a point, as a tap there would. */
       walkTo: (x: number, z: number) => {
         this.tapTarget = { x, z };
@@ -366,14 +373,18 @@ export class Game {
     }
     const style = resolveStyle(world.defaultStyle, next.style);
     this.style = style;
-    this.built = buildPlace(next, templates, style);
+    const rig = LIGHT_RIGS[style.light];
+    this.environment = skyEnvironment(rig.skyTop, rig.skyBottom, colourOf("ground", style));
+    this.built = buildPlace(next, templates, style, {
+      tier: this.tier,
+      environment: this.environment,
+    });
     this.three.add(this.built.root);
     this.three.fog = fogFor(style);
     this.pickables = this.built.pickables;
     this.sun = this.built.sun;
     this.sun.castShadow = TIERS[this.tier].shadows === "realtime";
-    const rig = LIGHT_RIGS[style.light];
-    this.environment = skyEnvironment(rig.skyTop, rig.skyBottom, colourOf("ground", style));
+    this.pipeline?.configure(style, this.tier);
 
     const physics = PlaceWorld.build(next, templates);
     const me = this.myId ? this.currentMe() : undefined;
@@ -693,7 +704,9 @@ export class Game {
 
   private itemObject(item: string): ItemObject | undefined {
     const template = templateMap.get(item);
-    return template ? buildTemplateObject(template, this.style) : undefined;
+    return template
+      ? buildTemplateObject(template, this.style, TIERS[this.tier].materials)
+      : undefined;
   }
 
   /** Keeps what an avatar holds and wears in step with the state. */
@@ -904,6 +917,11 @@ export class Game {
     };
   }
 
+  /** The resolved style of the place I'm in. */
+  currentStyle(): ResolvedStyle {
+    return this.style;
+  }
+
   /** Objects in the current scene, for the build panel. */
   objects(): { id: string; template: string }[] {
     return this.scene.instances.map((i) => ({ id: i.id, template: i.template }));
@@ -1026,7 +1044,8 @@ export class Game {
     this.updateTags(now);
     this.tapMarker.rotation.y += dt * 2;
 
-    this.renderer.render(this.three, this.rig.camera);
+    this.built?.update(dt, this.rig.camera.position);
+    this.pipeline.render();
     this.governor.sample(frameMs, now);
   }
 

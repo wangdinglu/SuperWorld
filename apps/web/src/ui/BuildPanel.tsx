@@ -10,16 +10,31 @@ const LIBRARY = [
   ["prim/planter", "🪴 Planter"],
   ["prim/fountain", "⛲ Fountain"],
   ["prim/portal-arch", "🚪 Arch"],
+  ["prim/pond", "💧 Pond"],
+  ["prim/glass-pavilion", "🔷 Glass pavilion"],
+  ["prim/holo-sign", "✨ Hologram"],
+  ["prim/statue", "🗿 Statue"],
+  ["prim/ball-basket", "⚽ Balls"],
+  ["prim/hat-stand", "🎉 Hats"],
+  ["prim/lantern-post", "🏮 Lanterns"],
+  ["prim/drum", "🥁 Drum"],
+  ["prim/chimes", "🎐 Chimes"],
+  ["prim/notice-board", "📋 Notice board"],
 ] as const;
 
 const LIGHTS = ["noon", "golden", "overcast", "neon"] as const;
 const FORMS = ["smooth", "lowpoly", "voxel"] as const;
 const PALETTES = ["meadow", "dusk", "mint", "candy", "mono"] as const;
+const SURFACES = ["soft", "toon", "ink", "pbr"] as const;
+const ATMOSPHERES = ["clear", "mist", "stars", "petals"] as const;
+const EFFECTS = ["outline", "pixelate", "grain", "bloom"] as const;
 
 /** For a space's owner: place objects in front of you, change the style, undo, and save. */
 export function BuildPanel(props: { game: Game; onClose(): void }) {
   const { game } = props;
   const p = place.value!;
+  // The space's style as everyone sees it (its own topics over the world's defaults).
+  const style = game.currentStyle();
   const [tab, setTab] = useState<"ai" | "add" | "objects" | "style" | "settings">(
     p.agentAvailable ? "ai" : "add",
   );
@@ -183,6 +198,8 @@ export function BuildPanel(props: { game: Game; onClose(): void }) {
               ["light", LIGHTS],
               ["form", FORMS],
               ["colour", PALETTES],
+              ["surface", SURFACES],
+              ["atmosphere", ATMOSPHERES],
             ] as const
           ).map(([topic, options]) => (
             <div key={topic}>
@@ -192,6 +209,7 @@ export function BuildPanel(props: { game: Game; onClose(): void }) {
                   <button
                     key={o}
                     class="chip"
+                    aria-pressed={style[topic] === o}
                     onClick={() => game.edit("style_set", { [topic]: o })}
                   >
                     {o}
@@ -200,6 +218,30 @@ export function BuildPanel(props: { game: Game; onClose(): void }) {
               </div>
             </div>
           ))}
+          <div>
+            <span class="label">effects</span>
+            <div class="opts">
+              {EFFECTS.map((e) => {
+                const on = style.postEffects.includes(e);
+                return (
+                  <button
+                    key={e}
+                    class="chip"
+                    aria-pressed={on}
+                    onClick={() =>
+                      game.edit("style_set", {
+                        postEffects: on
+                          ? style.postEffects.filter((x) => x !== e)
+                          : [...style.postEffects, e],
+                      })
+                    }
+                  >
+                    {e}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 

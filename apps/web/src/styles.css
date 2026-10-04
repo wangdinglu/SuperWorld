@@ -540,6 +540,11 @@ button {
   color: var(--muted);
   margin-bottom: 4px;
 }
+.chip[aria-pressed="true"] {
+  background: var(--accent, #6c8cff);
+  border-color: transparent;
+  color: #fff;
+}
 .opts {
   display: flex;
   flex-wrap: wrap;

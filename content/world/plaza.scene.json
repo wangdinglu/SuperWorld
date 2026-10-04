@@ -434,6 +434,18 @@
       "at": [0, 0, 18.5],
       "yaw": 3.1416,
       "text": "Welcome to SuperWorld! Sit on a bench, grab a ball from the basket and throw it (F), try on a party hat, or play the drums and chimes. Press E (or tap the button) to use things nearby."
+    },
+    {
+      "id": "holo-sign-1",
+      "template": "prim/holo-sign",
+      "at": [-4, 0, 19.5],
+      "yaw": 0
+    },
+    {
+      "id": "statue-1",
+      "template": "prim/statue",
+      "at": [0, 0, -14],
+      "yaw": 0
     }
   ],
   "portals": [

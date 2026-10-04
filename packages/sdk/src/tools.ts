@@ -6,6 +6,7 @@ import {
   type Scene,
   Surface,
   Atmosphere,
+  PostEffect,
   type Template,
 } from "@superworld/schema";
 import type { PatchOp } from "./patch.ts";
@@ -242,13 +243,18 @@ export const TOOLS = [
     name: "style_set",
     module: "style",
     description:
-      "Set the space's art style. Topics you leave out keep inheriting from the world. form: lowpoly | smooth | voxel. surface: toon | soft | ink | pbr. colour palette: dusk | mint | candy | mono | meadow. light: golden | noon | overcast | neon. atmosphere: clear | mist | stars | petals.",
+      "Set the space's art style. Topics you leave out keep inheriting from the world. form: lowpoly | smooth | voxel. surface: toon | soft | ink | pbr. colour palette: dusk | mint | candy | mono | meadow. light: golden | noon | overcast | neon. atmosphere: clear | mist | stars | petals. postEffects: the full list of screen effects to use, from outline | pixelate | grain | bloom ([] for none; phones may skip some).",
     input: z.strictObject({
       form: Form.optional(),
       surface: Surface.optional(),
       colour: Palette.optional(),
       light: Light.optional(),
       atmosphere: Atmosphere.optional(),
+      postEffects: z
+        .array(PostEffect)
+        .max(4)
+        .optional()
+        .transform((list) => (list ? [...new Set(list)] : list)),
     }),
     run: (ctx, input) => {
       const style = {

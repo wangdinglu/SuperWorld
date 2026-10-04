@@ -1,3 +1,5 @@
+import type { ResolvedStyle } from "@superworld/schema";
+
 export type Tier = "low" | "medium" | "high";
 
 export interface TierSettings {
@@ -9,6 +11,14 @@ export interface TierSettings {
   /** Frame-time budget in ms; the governor steps down when it stays over this. */
   frameBudgetMs: number;
   antialias: boolean;
+  /** Animated TSL materials (water, glass, holograms) or static stand-ins. */
+  materials: "full" | "lite";
+  /** Ink outlines (drawn as a second, inside-out copy of each part). */
+  outlines: boolean;
+  /** Screen effects this tier may run when a style asks for them. */
+  postEffects: ResolvedStyle["postEffects"];
+  /** Multiplier on atmosphere particle counts (stars, petals). */
+  particles: number;
 }
 
 /** Starting targets from docs/ARCHITECTURE.md §8, tuned in testing. */
@@ -20,6 +30,10 @@ export const TIERS: Record<Tier, TierSettings> = {
     farAvatarDistance: 45,
     frameBudgetMs: 1000 / 30,
     antialias: false,
+    materials: "lite",
+    outlines: false,
+    postEffects: ["pixelate"],
+    particles: 0.35,
   },
   medium: {
     pixelRatioCap: 1.5,
@@ -28,6 +42,10 @@ export const TIERS: Record<Tier, TierSettings> = {
     farAvatarDistance: 70,
     frameBudgetMs: 1000 / 45,
     antialias: true,
+    materials: "full",
+    outlines: true,
+    postEffects: ["outline", "pixelate", "grain"],
+    particles: 0.7,
   },
   high: {
     pixelRatioCap: 2,
@@ -36,6 +54,10 @@ export const TIERS: Record<Tier, TierSettings> = {
     farAvatarDistance: 120,
     frameBudgetMs: 1000 / 60,
     antialias: true,
+    materials: "full",
+    outlines: true,
+    postEffects: ["outline", "pixelate", "grain", "bloom"],
+    particles: 1,
   },
 };
 

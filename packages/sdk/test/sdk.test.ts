@@ -138,6 +138,17 @@ describe("EditSession", () => {
     expect(byId.get("prim/tree")).toBeUndefined();
   });
 
+  it("sets screen effects as a list, without repeats", () => {
+    const s = new EditSession(empty(), templates);
+    expect(
+      s.call("style_set", { surface: "ink", postEffects: ["grain", "bloom", "grain"] }, "agent").ok,
+    ).toBe(true);
+    expect(s.scene.style).toEqual({ surface: "ink", postEffects: ["grain", "bloom"] });
+    expect(s.call("style_set", { postEffects: ["sparkles"] }, "agent").ok).toBe(false);
+    s.call("style_set", { postEffects: [] }, "agent");
+    expect(s.scene.style.postEffects).toEqual([]);
+  });
+
   it("records the combined patch, which replays to the same scene", () => {
     const s = new EditSession(empty(), templates);
     s.call("scene_place_object", { template: "prim/fountain", x: 0, z: 0 }, "agent");
