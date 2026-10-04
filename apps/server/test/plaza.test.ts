@@ -103,7 +103,12 @@ describe("plaza room", () => {
       await sleep(1000 / 30);
     }
     await until(() => input.lastProcessed >= 30);
-    await sleep(150);
+    // Wait for the last state patch to arrive (it can lag under load) rather than a fixed sleep.
+    // Settled: unchanged across 150 ms (over two patch intervals at 15 Hz), within 3 s.
+    for (let i = 0, last = Number.NaN; i < 20 && me.x !== last; i++) {
+      last = me.x;
+      await sleep(150);
+    }
     expect(me.x - startX).toBeGreaterThan(3.5);
     expect(me.x - startX).toBeLessThan(4.5);
   });
