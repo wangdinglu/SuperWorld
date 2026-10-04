@@ -20,7 +20,8 @@
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm validate:content && pnpm test",
     "bots": "tsx tools/bots.ts",
     "avatars": "tsx tools/avatars/build.ts",
-    "avatars:thumbnails": "tsx tools/avatars/thumbnails.ts"
+    "avatars:thumbnails": "tsx tools/avatars/thumbnails.ts",
+    "avatars:import": "tsx tools/avatars/import.ts"
   },
   "devDependencies": {
     "@colyseus/sdk": "^0.18.4",

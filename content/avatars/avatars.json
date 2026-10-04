@@ -6,29 +6,64 @@
       "id": "sprout",
       "name": "Sprout",
       "file": "sprout.vrm",
-      "style": { "form": "smooth", "surface": "soft", "colour": "meadow" },
+      "style": {
+        "form": "smooth",
+        "surface": "soft",
+        "colour": "meadow"
+      },
       "about": "A seedling with a leaf that sways. Rounded shapes and gentle shading, like the plaza."
     },
     {
       "id": "pip",
       "name": "Pip",
       "file": "pip.vrm",
-      "style": { "form": "lowpoly", "surface": "toon", "colour": "candy" },
+      "style": {
+        "form": "lowpoly",
+        "surface": "toon",
+        "colour": "candy"
+      },
       "about": "A faceted fox with a bouncy tail. Flat facets, hard cel shading and bold outlines."
     },
     {
       "id": "inky",
       "name": "Inky",
       "file": "inky.vrm",
-      "style": { "form": "smooth", "surface": "ink", "colour": "mono" },
+      "style": {
+        "form": "smooth",
+        "surface": "ink",
+        "colour": "mono"
+      },
       "about": "A doodle off a handwritten page. Brush outlines, cross-hatched shadows and inked hands."
     },
     {
       "id": "bolt",
       "name": "Bolt",
       "file": "bolt.vrm",
-      "style": { "form": "voxel", "surface": "pbr", "colour": "dusk" },
+      "style": {
+        "form": "voxel",
+        "surface": "pbr",
+        "colour": "dusk"
+      },
       "about": "A blocky robot with an LED face. Built from cubes, with metal panels, a glass screen and glowing lights."
+    },
+    {
+      "id": "polybot",
+      "name": "Polybot",
+      "file": "polybot.vrm",
+      "style": {
+        "form": "lowpoly",
+        "surface": "toon"
+      },
+      "about": "A friendly low-poly robot from Polygonal Mind's 100Avatars collection, free to use (CC0).",
+      "source": {
+        "author": "Polygonal Mind",
+        "collection": "100Avatars R1 (#051)",
+        "url": "https://github.com/ToxSam/open-source-avatars",
+        "license": "CC0",
+        "download": "https://arweave.net/DUR8v-IugXppdMBxPdE1rDO2dZCJJ7ZgBTXSRgPJFNo",
+        "sha256": "e255bace0d7de8b5fc90756efc83e167080e6db97692f23623fec5f1c67c423d",
+        "fixes": ["mirrorZ", "tPose"]
+      }
     }
   ]
 }

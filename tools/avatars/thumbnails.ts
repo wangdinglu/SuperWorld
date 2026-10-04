@@ -84,6 +84,7 @@ let vrm;
 window.load = async (url) => {
   if (vrm) { scene.remove(vrm.scene); VRMUtils.deepDispose(vrm.scene); }
   vrm = (await loader.loadAsync(url)).userData.vrm;
+  VRMUtils.rotateVRM0(vrm);
   vrm.scene.traverse((o) => {
     for (const m of [o.material ?? []].flat()) if (m.isMeshStandardMaterial) m.envMap = sky;
   });
@@ -104,6 +105,13 @@ function pose(name) {
   if (name === "walk") {
     n("leftUpperArm").rotation.set(0.5, 0, -1.15); n("rightUpperArm").rotation.set(-0.5, 0, 1.15);
     n("leftUpperLeg").rotation.x = -0.5; n("leftLowerLeg").rotation.x = 0.3; n("rightUpperLeg").rotation.x = 0.45;
+  }
+  // VRM 0.x normalized bones live in the 0.x frame: the same pose has x and z negated.
+  if (vrm.meta.metaVersion === "0") {
+    for (const b of Object.keys(h.humanBones)) {
+      const r = h.getNormalizedBoneNode(b)?.rotation;
+      r?.set(-r.x, r.y, -r.z);
+    }
   }
 }
 async function render(o) {
@@ -221,7 +229,7 @@ try {
         "ee",
         "oh",
       ].map((e) => ({ label: e, face: true, expr: { [e]: 1 } }));
-      const bg = PALETTES[avatar.style.colour].ground;
+      const bg = avatar.style.colour ? PALETTES[avatar.style.colour].ground : "#dde3ec";
       save(
         join(reviewDir, `${avatar.id}-sheet.png`),
         await tab.evaluate(

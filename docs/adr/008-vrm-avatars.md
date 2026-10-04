@@ -13,4 +13,6 @@
 - **The player's avatar is part of the synced state** (`Player.avatar`, protocol v2). The server only accepts ids from the library, and players can switch at any time.
 - Each avatar has an **"Accent" material** (a scarf, a chest panel) tinted in the player's colour, so the colour picked at sign-in still shows.
 
+- **Downloaded avatars are allowed when openly licensed** (CC0 or CC-BY). Their library entry records the author, licence, original URL and SHA-256, and the repairs `pnpm avatars:import` applies to meet the VRM spec. The first is Polybot (CC0, Polygonal Mind's 100Avatars), a VRM 0.x model: the game turns 0.x models to face +Z and negates x/z bone rotations in the 0.x normalized frame.
+
 **Consequences.** M2.3 is partly done early: three-vrm, a default set and the picker. Still to do: `.vrma` emotes, 2D sprites, and capping spring bones in crowds. Each avatar costs one download per file and its own parse per player (own materials and pose); the four files are 0.2–0.6 MB and 0.7k–7.6k triangles.

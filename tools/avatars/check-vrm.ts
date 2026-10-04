@@ -20,7 +20,8 @@ const REQUIRED_BONES = [
   "rightUpperLeg",
   "rightLowerLeg",
   "rightFoot",
-];
+].filter((b) => b !== "chest");
+// Chest is optional in VRM (the game falls back to the spine), so it isn't required above.
 
 /** Returns the problems found (empty when the file is fine). */
 export function checkVrm(glb: Buffer, avatar: AvatarEntry): string[] {
@@ -29,6 +30,7 @@ export function checkVrm(glb: Buffer, avatar: AvatarEntry): string[] {
   if (glb.readUInt32LE(16) !== 0x4e4f534a) return ["first chunk is not JSON"];
   const json = JSON.parse(glb.subarray(20, 20 + glb.readUInt32LE(12)).toString("utf8"));
   const problems: string[] = [];
+  if (avatar.source) return checkDownloaded(json, avatar);
   const vrm = json.extensions?.VRMC_vrm;
   if (vrm?.specVersion !== "1.0") return ["no VRMC_vrm 1.0 extension"];
   const bones = vrm.humanoid?.humanBones ?? {};
@@ -52,5 +54,35 @@ export function checkVrm(glb: Buffer, avatar: AvatarEntry): string[] {
       );
   }
   if (glb.length > 2 * 1024 * 1024) problems.push("is over the 2 MiB avatar budget");
+  return problems;
+}
+
+/**
+ * A downloaded avatar (VRM 1.0 or 0.x): the bones the game animates, and a licence in the file
+ * itself that matches what the library says and lets everyone use it.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function checkDownloaded(json: any, avatar: AvatarEntry): string[] {
+  const problems: string[] = [];
+  const v1 = json.extensions?.VRMC_vrm;
+  const v0 = json.extensions?.VRM;
+  if (!v1 && !v0) return ["no VRM extension"];
+  const bones = new Set<string>(
+    v1
+      ? Object.keys(v1.humanoid?.humanBones ?? {})
+      : (v0.humanoid?.humanBones ?? []).map((b: { bone: string }) => b.bone),
+  );
+  for (const bone of REQUIRED_BONES) {
+    if (!bones.has(bone)) problems.push(`humanoid bone "${bone}" is missing`);
+  }
+  const licence = v1 ? v1.meta?.licenseUrl : v0.meta?.licenseName;
+  const everyone = v1
+    ? v1.meta?.avatarPermission === "everyone"
+    : v0.meta?.allowedUserName === "Everyone";
+  if (!everyone) problems.push("the file's licence doesn't let everyone use it");
+  if (v0 && licence !== avatar.source!.license)
+    problems.push(
+      `the file says licence "${licence}", the library says "${avatar.source!.license}"`,
+    );
   return problems;
 }

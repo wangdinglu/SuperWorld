@@ -26,8 +26,10 @@ const only = process.argv.slice(2);
 
 for (const avatar of library.avatars) {
   if (only.length && !only.includes(avatar.id)) continue;
+  if (avatar.source) continue; // downloaded, not built here
   const build = builders[avatar.id];
   if (!build) throw new Error(`No builder for avatar "${avatar.id}" in tools/avatars/build.ts`);
+  if (!avatar.style.colour) throw new Error(`Avatar "${avatar.id}" needs a palette`);
   const builder = build(PALETTES[avatar.style.colour]);
   const thumbnailPath = join(dir, `${avatar.id}.png`);
   const thumbnail = existsSync(thumbnailPath) ? readFileSync(thumbnailPath) : undefined;

@@ -38,6 +38,7 @@ pnpm test:e2e   # two browsers join the plaza (builds first)
 pnpm bots 50    # load test: 50 bot players wander a running server
 pnpm avatars    # rebuild the VRM avatars in content/avatars (made in code)
 pnpm avatars:thumbnails   # re-render their picker thumbnails (headless Chromium)
+pnpm avatars:import       # re-download and repair the openly licensed downloaded avatars
 ```
 
 ## Repository
@@ -52,7 +53,7 @@ packages/style    style inheritance and palettes
 packages/db       accounts, places and revisions (Drizzle, Postgres or embedded PGlite)
 packages/render   three.js scene building, avatars, camera, quality tiers
 content/world     the world, templates and plaza scene, as data
-content/avatars   VRM 1.0 avatars, one per style, and their library
+content/avatars   VRM avatars (one per style, plus a downloaded CC0 robot) and their library
 tools/avatars     the code that builds the avatars
 ```
 

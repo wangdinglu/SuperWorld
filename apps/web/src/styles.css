@@ -604,7 +604,7 @@ button {
 /* Avatar picker: one card per avatar, tinted by its style's palette */
 .avatars {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
   gap: 8px;
 }
 .avatar-card {
@@ -634,8 +634,9 @@ button {
 }
 .avatar-style {
   font-size: 11px;
+  line-height: 1.25;
   color: var(--muted);
-  white-space: nowrap;
+  text-align: center;
 }
 .avatar-palette {
   display: flex;
@@ -660,9 +661,4 @@ button {
   font-size: 13px;
   color: var(--muted);
   line-height: 1.4;
-}
-@media (max-width: 380px) {
-  .avatars {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }

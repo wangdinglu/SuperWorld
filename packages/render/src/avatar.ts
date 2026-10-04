@@ -115,6 +115,8 @@ export class Avatar {
   }
 
   private attach(vrm: VRM): void {
+    // VRM 0.x models face −Z; turn them to face +Z like VRM 1.0.
+    VRMUtils.rotateVRM0(vrm);
     if (this.vrm) {
       this.body.remove(this.vrm.scene);
       release(this.vrm);
@@ -196,7 +198,9 @@ export class Avatar {
       bone("leftLowerArm"),
       bone("rightLowerArm"),
     ];
-    const [spine, chest, head] = [bone("spine"), bone("chest"), bone("head")];
+    const [spine, head] = [bone("spine"), bone("head")];
+    // Chest is optional in VRM; fall back to the spine.
+    const chest = h.getNormalizedBoneNode("chest") ?? spine;
     for (const b of [
       legL,
       legR,
@@ -312,6 +316,25 @@ export class Avatar {
       } else {
         ex.setValue("oh", 0);
       }
+    }
+    // three-vrm keeps VRM 0.x normalized bones in the 0.x frame (turned half a turn about Y), where
+    // the same pose has x and z rotations negated.
+    if (vrm.meta.metaVersion === "0") {
+      for (const b of [
+        legL,
+        legR,
+        kneeL,
+        kneeR,
+        armL,
+        armR,
+        elbowL,
+        elbowR,
+        spine,
+        chest,
+        head,
+        hips,
+      ])
+        b.rotation.set(-b.rotation.x, b.rotation.y, -b.rotation.z);
     }
     vrm.update(dt);
   }
