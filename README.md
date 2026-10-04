@@ -53,7 +53,7 @@ packages/style    style inheritance and palettes
 packages/db       accounts, places and revisions (Drizzle, Postgres or embedded PGlite)
 packages/render   three.js scene building, avatars, camera, quality tiers
 content/world     the world, templates and plaza scene, as data
-content/avatars   VRM avatars (one per style, plus a downloaded CC0 robot) and their library
+content/avatars   VRM avatars (one per style, plus downloaded CC0 ones) and their library
 tools/avatars     the code that builds the avatars
 ```
 

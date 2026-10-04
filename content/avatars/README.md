@@ -1,6 +1,6 @@
 # Avatars
 
-The default avatar set. Most are VRM 1.0 files made in code by [`tools/avatars`](../../tools/avatars); one, Polybot, is a downloaded CC0 avatar (see below). Every avatar is drawn in one style, coloured from that style's palette, and records its style in the file (`scenes[0].extras.superworld`). [`avatars.json`](avatars.json) lists them; `pnpm validate:content` checks each file against it.
+The default avatar set. Most are VRM 1.0 files made in code by [`tools/avatars`](../../tools/avatars); the rest are downloaded CC0 avatars from Polygonal Mind's 100Avatars (see below). Every avatar is drawn in one style, coloured from that style's palette, and records its style in the file (`scenes[0].extras.superworld`). [`avatars.json`](avatars.json) lists them; `pnpm validate:content` checks each file against it.
 
 | Avatar                                     | Style (form / surface / palette) | What makes it that style                                                                                                                                                             |
 | ------------------------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -10,6 +10,8 @@ The default avatar set. Most are VRM 1.0 files made in code by [`tools/avatars`]
 | ![Bolt](bolt.png) **Bolt**                 | voxel / pbr / dusk               | Built only from boxes, physically based metal, glass and emissive materials, and an LED dot-matrix face whose pixels rearrange into each expression.                                 |
 
 | ![Polybot](polybot.png) **Polybot** (downloaded) | lowpoly / toon (its own textures) | Avatar #051 of Polygonal Mind's [100Avatars](https://github.com/ToxSam/open-source-avatars) collection, CC0 (no attribution required). VRM 0.x, about 2.1k triangles. |
+| ![Rose](rose.png) ![Erika](erika.png) ![Kate](kate.png) ![Witch](witch.png) **Rose, Erika, Kate, Witch** (downloaded) | lowpoly / toon (their own textures) | 100Avatars R1 (#057, #053, #038, #039), CC0. VRM 0.x, 1.4–2.4 MB, 4k–5.6k triangles; blink and visemes. |
+| ![Juanita](juanita.png) **Juanita** (downloaded) | lowpoly / toon (her own textures) | 100Avatars R3 (#252), CC0. VRM 0.x, 5.9 MB, 13.5k triangles: heavier, but with emotion faces too. |
 
 Every avatar made in code has:
 
@@ -23,7 +25,7 @@ Every avatar made in code has:
 
 An entry with a `source` was made by someone else. It names the author, the licence (CC0 or CC-BY only), the original `download` URL, its pinned `sha256`, and the `fixes` that make it meet the VRM spec. `pnpm avatars:import` downloads it again, refuses it if the bytes changed, and applies the fixes ([`tools/avatars/import.ts`](../../tools/avatars/import.ts)):
 
-- `mirrorZ`: the exporter wrote Polybot facing +Z while its skeleton was labelled for −Z (left and right swapped), so it is mirrored along Z.
+- `mirrorZ`: the exporter wrote these avatars facing +Z while its skeleton was labelled for −Z (left and right swapped), so it is mirrored along Z.
 - `tPose`: Polybot was rigged in an A-pose (arms 38° down); the arms are raised and the T-pose baked in as the rest pose.
 
 Materials, expressions (blink and the visemes; it has no emotions) and the author's licence metadata are kept as they are. `pnpm validate:content` checks that the file's own licence matches the library and lets everyone use it.
