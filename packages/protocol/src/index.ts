@@ -6,7 +6,10 @@ import { z } from "zod";
 export const PROTOCOL_VERSION = 2;
 
 /** Room name per place kind. */
-export const ROOM = { plaza: "plaza" } as const;
+export const ROOM = { plaza: "plaza", space: "space" } as const;
+
+/** Space ids: "s-" plus 10 lower-case letters or digits. */
+export const SpaceId = z.string().regex(/^s-[a-z0-9]{10}$/);
 export const PLAZA_CAPACITY = 50;
 
 /** One avatar. The movement fields mirror the core's AvatarState. */
@@ -76,6 +79,8 @@ export const CHAT_MAX = 200;
 export const AvatarId = z.string().regex(/^[a-z0-9][a-z0-9_-]{0,31}$/);
 
 export const JoinOptions = z.object({
+  /** Which space to join (space rooms only). */
+  placeId: SpaceId.optional(),
   protocol: z.number().int(),
   name: z.string().trim().min(1).max(NAME_MAX),
   colour: z.string().regex(/^#[0-9a-fA-F]{6}$/),
@@ -104,6 +109,46 @@ export const TelemetryMessage = z.object({
   viewport: z.tuple([z.number().int().min(0).max(20_000), z.number().int().min(0).max(20_000)]),
 });
 export type TelemetryMessage = z.infer<typeof TelemetryMessage>;
+
+/** Owner → server: run one Creator SDK tool on the space's draft. */
+export const EditMessage = z.object({ tool: z.string().max(64), input: z.unknown() });
+/** Owner → server: let a knocking visitor in (or not). */
+export const AdmitMessage = z.object({ userId: z.string().uuid(), allow: z.boolean() });
+
+/** Server → client when joining, and whenever the place's details change. */
+export interface PlaceInfo {
+  id: string;
+  kind: "plaza" | "space";
+  name: string;
+  ownerId: string | null;
+  ownerName: string | null;
+  visibility: "public" | "friends" | "private";
+  /** The scene everyone should currently see (the owner's live draft in a space being edited). */
+  scene: unknown;
+  /** Unsaved edit steps in the draft. */
+  draftSteps: string[];
+}
+
+/** Server → clients: the draft changed by one step. */
+export interface ScenePatchBroadcast {
+  patch: unknown[];
+  draftSteps: string[];
+}
+
+/** Server → the editor: the result of one tool call. */
+export interface EditResultMessage {
+  ok: boolean;
+  tool: string;
+  summary?: string;
+  error?: string;
+  output?: unknown;
+}
+
+/** Server → owner: someone is at the door of a private space. */
+export interface KnockBroadcast {
+  userId: string;
+  name: string;
+}
 
 /** Server → client broadcasts. */
 export interface ChatBroadcast {

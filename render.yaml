@@ -19,3 +19,15 @@ services:
       # Comma-separated origins allowed to call the API, e.g. your Cloudflare Pages URL. Empty = any origin.
       - key: ALLOWED_ORIGINS
         value: ""
+      # Postgres connection string (e.g. Neon's free tier). Without it, accounts live in an embedded
+      # database on the server's disk, which resets when a free Render service restarts.
+      - key: DATABASE_URL
+        sync: false
+      # Where emailed sign-in links point: your game's public address (e.g. the GitHub Pages URL).
+      - key: PUBLIC_URL
+        sync: false
+      # Resend API key for sign-in emails. Without it, links are printed to the server log.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false

@@ -16,6 +16,7 @@
     "@superworld/protocol": "workspace:*",
     "@superworld/render": "workspace:*",
     "@superworld/schema": "workspace:*",
+    "@superworld/sdk": "workspace:*",
     "@superworld/style": "workspace:*",
     "preact": "^11.0.0",
     "three": "^0.186.1"

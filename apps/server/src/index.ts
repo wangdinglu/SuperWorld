@@ -1,10 +1,34 @@
-import { loadContent } from "./content.ts";
+import { join } from "node:path";
+import { openDatabase, seedPlace } from "@superworld/db";
 import { createServer } from "./app.ts";
-import { assertGuestSecret } from "./guest.ts";
+import { loadContent } from "./content.ts";
+import { createMailer } from "./mailer.ts";
+import { assertTokenSecret } from "./tokens.ts";
 
+const repoRoot = join(import.meta.dirname, "..", "..", "..");
 const port = Number(process.env.PORT ?? 2567);
-assertGuestSecret();
+assertTokenSecret();
 const content = loadContent();
-const server = createServer(content);
+
+// DATABASE_URL → real Postgres (e.g. Neon). Without it, an embedded Postgres stores data in DATA_DIR.
+const database = await openDatabase({
+  ...(process.env.DATABASE_URL
+    ? { url: process.env.DATABASE_URL }
+    : { dataDir: process.env.DATA_DIR ?? join(repoRoot, ".data", "db") }),
+  migrationsDir: join(repoRoot, "packages", "db", "migrations"),
+});
+if (database.kind === "embedded" && process.env.NODE_ENV === "production") {
+  console.warn(
+    "No DATABASE_URL: using the embedded database. On hosts without a persistent disk, accounts reset on restart.",
+  );
+}
+for (const place of content.world.places) {
+  const scene = content.scenes[place.id];
+  if (scene && (place.kind === "plaza" || place.kind === "district")) {
+    await seedPlace(database.db, { id: place.id, kind: place.kind, name: place.name, scene });
+  }
+}
+
+const server = createServer({ content, db: database.db, mailer: createMailer() });
 await server.listen(port, "0.0.0.0");
-console.log(`SuperWorld game server listening on :${port}`);
+console.log(`SuperWorld game server listening on :${port} (database: ${database.kind})`);

@@ -12,12 +12,18 @@ import {
   people,
   personKey,
   ping,
+  place,
   renderInfo,
   soloMode,
   toggleMute,
 } from "../store.ts";
 import { AvatarPicker } from "./AvatarPicker.tsx";
 import { Joystick } from "./Joystick.tsx";
+import { AccountPanel } from "./AccountPanel.tsx";
+import { BuildPanel } from "./BuildPanel.tsx";
+import { KnockPrompts } from "./KnockPrompts.tsx";
+import { SpacesPanel } from "./SpacesPanel.tsx";
+import { account } from "../account.ts";
 
 const EMOTE_LABEL: Record<Emote, string> = {
   wave: "👋 Wave",
@@ -31,7 +37,11 @@ export function Hud(props: { game: Game }) {
   const { game } = props;
   const [showPeople, setShowPeople] = useState(false);
   const [showEmotes, setShowEmotes] = useState(false);
-  const [showAvatars, setShowAvatars] = useState(false);
+  const [panel, setPanel] = useState<"none" | "account" | "spaces" | "build" | "people" | "avatar">(
+    "none",
+  );
+  const showAccount = panel === "account";
+  const toggle = (p: typeof panel) => setPanel(panel === p ? "none" : p);
   const [draft, setDraft] = useState("");
   const chatInput = useRef<HTMLInputElement>(null);
 
@@ -45,7 +55,27 @@ export function Hud(props: { game: Game }) {
   return (
     <div class="hud">
       <div class="topbar">
-        <div class="pill strong">{soloMode.value ? "Plaza · solo practice" : "Plaza"}</div>
+        <div class="pill strong">
+          {soloMode.value
+            ? "Plaza · solo practice"
+            : place.value?.kind === "space"
+              ? place.value.name
+              : "Plaza"}
+        </div>
+        {!soloMode.value && (
+          <button class="pill" onClick={() => toggle("spaces")} aria-expanded={panel === "spaces"}>
+            Spaces
+          </button>
+        )}
+        {place.value?.isOwner && (
+          <button
+            class="pill accent"
+            onClick={() => toggle("build")}
+            aria-expanded={panel === "build"}
+          >
+            🔨 Build{place.value.draftSteps.length > 0 ? ` · ${place.value.draftSteps.length}` : ""}
+          </button>
+        )}
         <button class="pill" onClick={() => setShowPeople(!showPeople)} aria-expanded={showPeople}>
           {people.value.length + 1} here
         </button>
@@ -55,9 +85,21 @@ export function Hud(props: { game: Game }) {
             {info.backend} · {info.tier}
           </div>
         )}
+        {!soloMode.value && (
+          <button class="pill" onClick={() => toggle("account")} aria-expanded={showAccount}>
+            {account.value?.user.kind === "member" ? "Account" : "Keep my account"}
+          </button>
+        )}
       </div>
 
-      {showPeople && (
+      {panel === "spaces" && <SpacesPanel game={game} onClose={() => setPanel("none")} />}
+      {panel === "build" && place.value?.isOwner && (
+        <BuildPanel game={game} onClose={() => setPanel("none")} />
+      )}
+      <KnockPrompts game={game} />
+      {showAccount && <AccountPanel onClose={() => setPanel("none")} />}
+
+      {showPeople && panel === "none" && (
         <div class="card panel people">
           <h2>People nearby</h2>
           {people.value.length === 0 && (
@@ -135,7 +177,7 @@ export function Hud(props: { game: Game }) {
         </form>
       ) : null}
 
-      {showAvatars && (
+      {panel === "avatar" && (
         <div class="card panel avatar-panel">
           <h2>Avatar</h2>
           <AvatarPicker
@@ -172,7 +214,7 @@ export function Hud(props: { game: Game }) {
           aria-expanded={showEmotes}
           onClick={() => {
             setShowEmotes(!showEmotes);
-            setShowAvatars(false);
+            if (panel === "avatar") setPanel("none");
           }}
         >
           🙂
@@ -180,9 +222,9 @@ export function Hud(props: { game: Game }) {
         <button
           class="round"
           aria-label="Avatar"
-          aria-expanded={showAvatars}
+          aria-expanded={panel === "avatar"}
           onClick={() => {
-            setShowAvatars(!showAvatars);
+            toggle("avatar");
             setShowEmotes(false);
           }}
         >

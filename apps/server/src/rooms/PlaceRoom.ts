@@ -1,0 +1,377 @@
+import { type AuthContext, type Client, Room } from "@colyseus/core";
+import { StateView } from "@colyseus/schema";
+import { createRng, initPhysics, PlaceWorld, TICK_RATE } from "@superworld/core";
+import {
+  AdmitMessage,
+  AvatarMessage,
+  ChatMessage,
+  EditMessage,
+  EmoteMessage,
+  JoinOptions,
+  MoveInput,
+  PLAZA_CAPACITY,
+  PlaceState,
+  Player,
+  PROTOCOL_VERSION,
+  ReportMessage,
+  TelemetryMessage,
+  toCommand,
+  type ChatBroadcast,
+  type EditResultMessage,
+  type EmoteBroadcast,
+  type PlaceInfo,
+  type ScenePatchBroadcast,
+  SpaceId,
+} from "@superworld/protocol";
+import type { Scene } from "@superworld/schema";
+import type { Content } from "../content.ts";
+import { createReport, type Db, getPlace, getUser, type Place, touchUser } from "@superworld/db";
+import type { EditorEvent, SpaceEditor, SpaceEditors } from "../editors.ts";
+import type { Knocks } from "../knocks.ts";
+import { type Identity, verifyToken } from "../tokens.ts";
+import { visibleFor } from "../interest.ts";
+import { maskText, RateLimiter } from "../moderation.ts";
+
+export interface PlaceRoomOptions {
+  content: Content;
+  db: Db;
+  editors: SpaceEditors;
+  knocks: Knocks;
+  /** Live space rooms by place id, so API changes (visibility) reach the room. */
+  liveRooms: Map<string, PlaceRoom>;
+  kind: "plaza" | "space";
+  /** The plaza's place id (from the world manifest), or the space id from the joining client. */
+  placeId?: string;
+}
+
+/** Thrown from onAuth when a visitor must knock first; the client shows a knock button. */
+export const KNOCK_REQUIRED = "This space is private: knock to ask the owner to let you in";
+const SPACE_CAPACITY = 24;
+
+/** Most buffered inputs applied per client per tick: lets a client catch up after jitter, but not run fast. */
+const MAX_INPUTS_PER_TICK = 3;
+/** State patches per second sent to clients. */
+const PATCH_RATE_HZ = 15;
+/** Recompute who sees whom every N ticks. */
+const INTEREST_EVERY_TICKS = 5;
+const RECONNECT_SECONDS = 20;
+const STATS_EVERY_TICKS = TICK_RATE * 30;
+
+/**
+ * One live instance of a place: the plaza (a shard of it) or a player's space. Runs the shared
+ * core at a fixed step; in spaces, the owner edits a live draft that everyone inside sees.
+ */
+export class PlaceRoom extends Room<{
+  state: PlaceState;
+  input: MoveInput;
+  client: Client<{ auth: Identity }>;
+}> {
+  override maxClients = PLAZA_CAPACITY;
+  override state = new PlaceState();
+  override inputs = this.defineInput(MoveInput);
+
+  private world!: PlaceWorld;
+  private db!: Db;
+  private options!: PlaceRoomOptions;
+  private place: Place | undefined;
+  private ownerName: string | null = null;
+  private editor: SpaceEditor | undefined;
+  private scene!: Scene;
+  private readonly cleanups: (() => void)[] = [];
+  private readonly rng = createRng(Date.now() & 0xffffffff);
+  private readonly visible = new Map<string, Set<string>>();
+  private readonly chatLimit = new RateLimiter(5, 10_000);
+  private readonly emoteLimit = new RateLimiter(2, 2_000);
+  private readonly telemetryLimit = new RateLimiter(2, 20_000);
+  private readonly avatarLimit = new RateLimiter(3, 5_000);
+  private tickCount = 0;
+  private stepMs = 0;
+
+  override async onCreate(options: PlaceRoomOptions): Promise<void> {
+    this.options = options;
+    this.db = options.db;
+    await initPhysics();
+    if (options.kind === "space") {
+      const placeId = SpaceId.parse(options.placeId);
+      this.place = await getPlace(this.db, placeId);
+      this.editor = await options.editors.get(placeId);
+      if (!this.place || this.place.kind !== "space" || !this.editor)
+        throw new Error("This space doesn't exist");
+      this.ownerName = this.place.ownerId
+        ? ((await getUser(this.db, this.place.ownerId))?.displayName ?? null)
+        : null;
+      this.maxClients = SPACE_CAPACITY;
+      options.liveRooms.set(placeId, this);
+      this.cleanups.push(() => {
+        if (options.liveRooms.get(placeId) === this) options.liveRooms.delete(placeId);
+      });
+      this.scene = this.editor.scene;
+      this.cleanups.push(this.editor.subscribe((event) => this.onEditorEvent(event)));
+      this.cleanups.push(
+        options.knocks.onKnock(placeId, (userId, name) => {
+          for (const c of this.clients) if (this.isOwner(c)) c.send("knock", { userId, name });
+        }),
+      );
+    } else {
+      const scene = options.content.scenes[options.placeId ?? ""];
+      if (!scene) throw new Error(`No scene for place "${options.placeId}"`);
+      this.scene = scene;
+    }
+    this.world = PlaceWorld.build(this.scene, options.content.templates);
+    this.state.place = this.scene.place;
+    this.state.revision = this.scene.revision;
+    this.patchRate = 1000 / PATCH_RATE_HZ;
+    // setMetadata replaces (Colyseus 0.18): keep the matchmaking filter (placeId) it already holds.
+    this.setMetadata({ ...this.metadata, place: this.scene.place, kind: options.kind });
+
+    this.setFixedTimestep((ctx) => {
+      const started = performance.now();
+      for (const [sessionId, player] of this.state.players) {
+        for (const input of this.inputs.get(sessionId).take(MAX_INPUTS_PER_TICK)) {
+          this.world.stepAvatar(sessionId, player, toCommand(input), ctx.dt);
+        }
+      }
+      if (++this.tickCount % INTEREST_EVERY_TICKS === 0) this.updateInterest();
+      this.stepMs += performance.now() - started;
+      if (this.tickCount % STATS_EVERY_TICKS === 0) {
+        // Telemetry: average step time and load, for the 50-player budget in docs/PROCESS_PLAN.md (M1.6).
+        console.log(
+          JSON.stringify({
+            event: "room-stats",
+            room: this.roomId,
+            players: this.state.players.size,
+            avgStepMs: +(this.stepMs / STATS_EVERY_TICKS).toFixed(3),
+          }),
+        );
+        this.stepMs = 0;
+      }
+    }, TICK_RATE);
+
+    this.onMessage("chat", (client, message: unknown) => {
+      const parsed = ChatMessage.safeParse(message);
+      if (!parsed.success || !this.chatLimit.allow(client.sessionId)) return;
+      const player = this.state.players.get(client.sessionId);
+      if (!player) return;
+      const payload: ChatBroadcast = {
+        sessionId: client.sessionId,
+        name: player.name,
+        text: maskText(parsed.data.text),
+      };
+      this.broadcast("chat", payload);
+    });
+
+    this.onMessage("emote", (client, message: unknown) => {
+      const parsed = EmoteMessage.safeParse(message);
+      if (!parsed.success || !this.emoteLimit.allow(client.sessionId)) return;
+      const payload: EmoteBroadcast = { sessionId: client.sessionId, emote: parsed.data.emote };
+      this.broadcast("emote", payload);
+    });
+
+    this.onMessage("avatar", (client, message: unknown) => {
+      const parsed = AvatarMessage.safeParse(message);
+      if (!parsed.success || !this.isAvatar(parsed.data.avatar)) return;
+      if (!this.avatarLimit.allow(client.sessionId)) return;
+      const player = this.state.players.get(client.sessionId);
+      if (player) player.avatar = parsed.data.avatar;
+    });
+
+    this.onMessage("telemetry", (client, message: unknown) => {
+      const parsed = TelemetryMessage.safeParse(message);
+      if (!parsed.success || !this.telemetryLimit.allow(client.sessionId)) return;
+      console.log(
+        JSON.stringify({
+          event: "client-telemetry",
+          room: this.roomId,
+          session: client.sessionId,
+          ...parsed.data,
+        }),
+      );
+    });
+
+    this.onMessage("report", (client, message: unknown) => {
+      const parsed = ReportMessage.safeParse(message);
+      if (!parsed.success) return;
+      const target = this.clients.find((c) => c.sessionId === parsed.data.sessionId);
+      void createReport(this.db, {
+        reporterId: client.auth?.userId ?? null,
+        targetUserId: (target?.auth as Identity | undefined)?.userId ?? null,
+        room: this.roomId,
+        reason: parsed.data.reason,
+      }).catch((err) => console.error("report failed", err));
+    });
+
+    this.registerEditing();
+  }
+
+  /** Space owners edit through the shared editor; everyone inside sees each step. */
+  private registerEditing(): void {
+    const ownerOnly = (client: Client, run: () => void | Promise<void>) => {
+      if (!this.editor || !this.isOwner(client)) return;
+      void Promise.resolve(run()).catch((err) => console.error("edit failed", err));
+    };
+    this.onMessage("edit", (client, message: unknown) =>
+      ownerOnly(client, () => {
+        const parsed = EditMessage.safeParse(message);
+        if (!parsed.success) return;
+        const result = this.editor!.call(parsed.data.tool, parsed.data.input, "player");
+        const reply: EditResultMessage = result.ok
+          ? { ok: true, tool: parsed.data.tool, summary: result.summary, output: result.output }
+          : { ok: false, tool: parsed.data.tool, error: result.error };
+        client.send("edit-result", reply);
+      }),
+    );
+    this.onMessage("undo", (client) => ownerOnly(client, () => void this.editor!.undo()));
+    this.onMessage("discard", (client) => ownerOnly(client, () => this.editor!.discard()));
+    this.onMessage("save", (client) =>
+      ownerOnly(client, async () => {
+        await this.editor!.save(client.auth.userId);
+      }),
+    );
+    this.onMessage("admit", (client, message: unknown) =>
+      ownerOnly(client, () => {
+        const parsed = AdmitMessage.safeParse(message);
+        if (parsed.success)
+          this.options.knocks.answer(this.place!.id, parsed.data.userId, parsed.data.allow);
+      }),
+    );
+  }
+
+  private isOwner(client: Client): boolean {
+    return (
+      Boolean(this.place?.ownerId) &&
+      (client.auth as Identity | undefined)?.userId === this.place?.ownerId
+    );
+  }
+
+  private placeInfo(): PlaceInfo {
+    return {
+      id: this.scene.place,
+      kind: this.options.kind,
+      name: this.place?.name ?? "Plaza",
+      ownerId: this.place?.ownerId ?? null,
+      ownerName: this.ownerName,
+      visibility: this.place?.visibility ?? "public",
+      scene: this.scene,
+      draftSteps: this.editor?.draftSteps ?? [],
+    };
+  }
+
+  private onEditorEvent(event: EditorEvent): void {
+    this.scene = this.editor!.scene;
+    this.rebuildWorld();
+    if (event.type === "patch") {
+      const payload: ScenePatchBroadcast = { patch: event.patch, draftSteps: event.draftSteps };
+      this.broadcast("scene-patch", payload);
+    } else {
+      this.state.revision = this.scene.revision;
+      this.broadcast("place", this.placeInfo());
+    }
+  }
+
+  /** Rebuilds colliders after an edit, keeping every avatar where it stands. */
+  private rebuildWorld(): void {
+    const next = PlaceWorld.build(this.scene, this.options.content.templates);
+    for (const [sessionId, player] of this.state.players) next.addAvatar(sessionId, player);
+    this.world.dispose();
+    this.world = next;
+  }
+
+  /** Called by the visibility API so the room enforces the new rule for future joins. */
+  async refreshPlace(): Promise<void> {
+    if (this.place) {
+      this.place = await getPlace(this.db, this.place.id);
+      this.broadcast("place", this.placeInfo());
+    }
+  }
+
+  override async onAuth(
+    _client: Client,
+    options: unknown,
+    context: AuthContext,
+  ): Promise<Identity> {
+    const parsed = JoinOptions.safeParse(options);
+    if (!parsed.success) throw new Error("Invalid join options");
+    if (parsed.data.protocol !== PROTOCOL_VERSION)
+      throw new Error("Client is out of date: please reload");
+    const identity = verifyToken(context.token);
+    const user = identity ? await getUser(this.db, identity.userId) : undefined;
+    if (!identity || !user) throw new Error("Missing or invalid guest token");
+    if (this.place && this.place.ownerId !== user.id && this.place.visibility !== "public") {
+      if (!this.options.knocks.hasPass(this.place.id, user.id)) throw new Error(KNOCK_REQUIRED);
+    }
+    void touchUser(this.db, user.id).catch(() => {});
+    // The database is the source of truth for names and colours (they may have changed since the token was issued).
+    return { ...identity, kind: user.kind, name: user.displayName, colour: user.colour };
+  }
+
+  private isAvatar(id: string): boolean {
+    return this.options.content.avatars.avatars.some((a) => a.id === id);
+  }
+
+  override onJoin(client: Client<{ auth: Identity }>, options?: unknown): void {
+    const identity = client.auth!;
+    const wanted = JoinOptions.safeParse(options).data?.avatar;
+    const [x, y, z] = this.world.spawnPosition(this.rng(), this.rng());
+    const player = new Player();
+    Object.assign(player, {
+      x,
+      y,
+      z,
+      vy: 0,
+      yaw: Math.PI,
+      grounded: true,
+      name: maskText(identity.name),
+      colour: identity.colour,
+      avatar: wanted && this.isAvatar(wanted) ? wanted : this.options.content.avatars.default,
+    });
+    this.state.players.set(client.sessionId, player);
+    this.world.addAvatar(client.sessionId, player);
+    client.send("place", this.placeInfo());
+    client.view = new StateView();
+    this.visible.set(client.sessionId, new Set());
+    this.updateInterest();
+  }
+
+  override async onDrop(client: Client): Promise<void> {
+    // Keep the seat briefly so a flaky mobile connection can come back to the same avatar.
+    await this.allowReconnection(client, RECONNECT_SECONDS);
+  }
+
+  override onLeave(client: Client): void {
+    this.state.players.delete(client.sessionId);
+    this.world.removeAvatar(client.sessionId);
+    this.visible.delete(client.sessionId);
+    this.chatLimit.forget(client.sessionId);
+    this.emoteLimit.forget(client.sessionId);
+    this.telemetryLimit.forget(client.sessionId);
+    this.avatarLimit.forget(client.sessionId);
+    this.updateInterest();
+  }
+
+  override onDispose(): void {
+    for (const c of this.cleanups) c();
+    this.world?.dispose();
+  }
+
+  /** Adds and removes avatars from each client's view so it only receives the ones near it. */
+  private updateInterest(): void {
+    for (const client of this.clients) {
+      const view = client.view;
+      const current = this.visible.get(client.sessionId);
+      if (!view || !current) continue;
+      const next = new Set(visibleFor(client.sessionId, this.state.players));
+      for (const id of current) {
+        if (next.has(id)) continue;
+        const player = this.state.players.get(id);
+        if (player) view.remove(player);
+        current.delete(id);
+      }
+      for (const id of next) {
+        if (current.has(id)) continue;
+        const player = this.state.players.get(id);
+        if (player) view.add(player);
+        current.add(id);
+      }
+    }
+  }
+}

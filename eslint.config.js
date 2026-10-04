@@ -63,4 +63,9 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Tests read loosely typed JSON responses.
+    files: ["**/test/**", "e2e/**"],
+    rules: { "@typescript-eslint/no-explicit-any": "off" },
+  },
 );

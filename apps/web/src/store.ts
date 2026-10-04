@@ -45,3 +45,31 @@ export function pushChat(entry: Omit<ChatEntry, "id">): void {
   chatLog.value = [...chatLog.value.slice(-49), { ...entry, id: nextId++ }];
 }
 export const soloMode = signal(false);
+export const notice = signal("");
+
+/** The place you're in, as the server describes it. */
+export interface CurrentPlace {
+  id: string;
+  kind: "plaza" | "space";
+  name: string;
+  ownerName: string | null;
+  visibility: "public" | "friends" | "private";
+  isOwner: boolean;
+  draftSteps: string[];
+}
+export const place = signal<CurrentPlace | null>(null);
+
+/** Travel between places, including knocking on a private space. */
+export const travel = signal<
+  | { state: "idle" }
+  | { state: "travelling"; to: string }
+  | { state: "knock"; spaceId: string; message: string }
+  | { state: "knocking"; spaceId: string }
+  | { state: "denied"; message: string }
+>({ state: "idle" });
+
+/** Visitors knocking on my space. */
+export const knocks = signal<{ userId: string; name: string }[]>([]);
+
+/** The last Creator SDK result, for the build panel. */
+export const editResult = signal<{ ok: boolean; text: string } | null>(null);

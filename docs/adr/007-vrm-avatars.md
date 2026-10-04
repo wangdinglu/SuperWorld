@@ -1,4 +1,4 @@
-# ADR-006: VRM avatars, one per style, made in code
+# ADR-007: VRM avatars, one per style, made in code
 
 **Status:** Accepted · 4 Oct 2026 · replaces the avatar part of [ADR-004](004-phase-1-scope.md)
 

@@ -1,8 +1,9 @@
-import { createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
-export interface GuestIdentity {
-  /** Stable guest id for this token (not the room session id). */
-  guestId: string;
+/** What a signed session token says about its holder. */
+export interface Identity {
+  userId: string;
+  kind: "guest" | "member";
   name: string;
   colour: string;
   /** Expiry, seconds since epoch. */
@@ -10,6 +11,7 @@ export interface GuestIdentity {
 }
 
 const DAY = 24 * 60 * 60;
+const DEV_SECRET = "superworld-development-only-secret-do-not-use-in-production";
 
 function secret(): string {
   const fromEnv = process.env.GUEST_TOKEN_SECRET;
@@ -17,28 +19,26 @@ function secret(): string {
   if (process.env.NODE_ENV === "production") {
     throw new Error("GUEST_TOKEN_SECRET must be set (32+ characters) in production");
   }
-  // Development: a per-process secret. Tokens stop working when the server restarts, which is fine locally.
-  return (devSecret ??= randomBytes(32).toString("hex"));
+  return DEV_SECRET;
 }
-let devSecret: string | undefined;
 
 /** Throws at startup if production is missing its token secret, so a bad deploy fails fast. */
-export function assertGuestSecret(): void {
+export function assertTokenSecret(): void {
   secret();
 }
 
 const sign = (payload: string): string =>
   createHmac("sha256", secret()).update(payload).digest("base64url");
 
-export function issueGuestToken(
-  name: string,
-  colour: string,
+export function issueToken(
+  user: Omit<Identity, "exp">,
   now = Date.now() / 1000,
-): { token: string; identity: GuestIdentity } {
-  const identity: GuestIdentity = {
-    guestId: randomUUID(),
-    name,
-    colour,
+): { token: string; identity: Identity } {
+  const identity: Identity = {
+    userId: user.userId,
+    kind: user.kind,
+    name: user.name,
+    colour: user.colour,
     exp: Math.floor(now + 30 * DAY),
   };
   const payload = Buffer.from(JSON.stringify(identity)).toString("base64url");
@@ -46,10 +46,10 @@ export function issueGuestToken(
 }
 
 /** Returns the identity in a valid, unexpired token, or undefined. */
-export function verifyGuestToken(
+export function verifyToken(
   token: string | undefined,
   now = Date.now() / 1000,
-): GuestIdentity | undefined {
+): Identity | undefined {
   if (!token) return undefined;
   const [payload, signature] = token.split(".");
   if (!payload || !signature) return undefined;
@@ -57,12 +57,20 @@ export function verifyGuestToken(
   const given = Buffer.from(signature);
   if (expected.length !== given.length || !timingSafeEqual(expected, given)) return undefined;
   try {
-    const identity = JSON.parse(
-      Buffer.from(payload, "base64url").toString("utf8"),
-    ) as GuestIdentity;
-    if (typeof identity.exp !== "number" || identity.exp < now) return undefined;
+    const identity = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Identity;
+    if (
+      typeof identity.exp !== "number" ||
+      identity.exp < now ||
+      typeof identity.userId !== "string"
+    )
+      return undefined;
     return identity;
   } catch {
     return undefined;
   }
+}
+
+/** Reads "Authorization: Bearer <token>". */
+export function bearer(header: string | undefined): string | undefined {
+  return header?.startsWith("Bearer ") ? header.slice(7) : undefined;
 }

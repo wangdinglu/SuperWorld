@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { verifyGuestToken, issueGuestToken } from "../src/guest.ts";
+import { issueToken, verifyToken } from "../src/tokens.ts";
 import { maskText, RateLimiter } from "../src/moderation.ts";
 
 describe("maskText", () => {
@@ -19,17 +19,20 @@ describe("RateLimiter", () => {
   });
 });
 
-describe("guest tokens", () => {
+describe("session tokens", () => {
   it("verifies its own tokens and rejects tampered or expired ones", () => {
-    const { token } = issueGuestToken("Ada", "#ff8800", 1000);
-    expect(verifyGuestToken(token, 1000)?.name).toBe("Ada");
+    const { token } = issueToken(
+      { userId: "u1", kind: "guest", name: "Ada", colour: "#ff8800" },
+      1000,
+    );
+    expect(verifyToken(token, 1000)?.name).toBe("Ada");
     expect(
-      verifyGuestToken(
-        token.replace(/.$/, (c) => (c === "A" ? "B" : "A")),
+      verifyToken(
+        token.replace(/.$/, (c: string) => (c === "A" ? "B" : "A")),
         1000,
       ),
     ).toBeUndefined();
-    expect(verifyGuestToken(token, 1000 + 31 * 24 * 3600)).toBeUndefined();
-    expect(verifyGuestToken("garbage")).toBeUndefined();
+    expect(verifyToken(token, 1000 + 31 * 24 * 3600)).toBeUndefined();
+    expect(verifyToken("garbage")).toBeUndefined();
   });
 });
