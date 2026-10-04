@@ -172,7 +172,7 @@ All formats are defined once with **Zod 4** in `packages/schema`. One definition
 | `Template`     | model asset, collider, one behaviour, style override, stats (triangles, textures), sprite sheet, review status | a reusable object type       |
 | `Instance`     | template reference, transform, overrides                                                                       | lives inside a scene         |
 | `StyleProfile` | form, surface, colour, light, atmosphere, post-effects, motion, sound, 2D look; every topic optional           | see §10                      |
-| `Avatar`       | VRM asset, sprite sheet, animation set, style                                                                  | VRM default set (ADR-007)    |
+| `Avatar`       | VRM asset, sprite sheet, animation set, style                                                                  | VRM default set (ADR-008)    |
 | `Asset`        | SHA-256 hash, kind, size, stats, review status                                                                 | immutable, addressed by hash |
 
 A scene, trimmed:
@@ -336,7 +336,7 @@ sequenceDiagram
 ## 11. Avatars and assets
 
 - **Formats:** glTF 2.0 for objects, VRM 1.0 for avatars, KTX2 textures, meshopt geometry compression.
-- **Avatars** are VRM 1.0 from a default set made in code (`tools/avatars`, `content/avatars`): one avatar per style, coloured from its palette, so there are still no outside assets and no licence questions (ADR-007).
+- **Avatars** are VRM 1.0 from a default set made in code (`tools/avatars`, `content/avatars`): one avatar per style, coloured from its palette, so there are still no outside assets and no licence questions (ADR-008).
 
 ```mermaid
 flowchart LR
@@ -508,7 +508,7 @@ This document takes these decisions; each becomes a short ADR in `docs/adr/` whe
 3. JSON Patch on versioned scene documents is the only way to edit.
 4. Zod is the single schema language.
 5. No database in Phase 1; persistence arrives with private spaces in Phase 2.
-6. VRM 1.0 avatars from a default set made in code, one per style (ADR-007); generated avatars from Phase 2.
+6. VRM 1.0 avatars from a default set made in code, one per style (ADR-008); generated avatars from Phase 2.
 7. TypeScript 6.0 until lint tooling supports 7.
 8. QuickJS in WASM for player scripts.
 

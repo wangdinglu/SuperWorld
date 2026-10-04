@@ -64,6 +64,8 @@ tools/avatars     the code that builds the avatars
 
 **Accounts (Phase 2).** Players are saved in Postgres. Set `DATABASE_URL` on Render to a free Neon database so accounts survive restarts; without it the server uses an embedded database that resets whenever the free service restarts. For sign-in emails, set `RESEND_API_KEY` (Resend's free tier) and `PUBLIC_URL` (the address players open, e.g. the GitHub Pages URL). Without an email key, sign-in links appear in the server log.
 
+**AI building agent (Phase 2).** Set `ANTHROPIC_API_KEY` and `AGENT_MODEL` (a Claude model ID from Anthropic's model list; the current Opus-tier model is the intended default) on the server. Owners then get a "✨ Ask AI" tab in the build panel. Each player gets a daily request quota (`AGENT_DAILY_LIMIT_GUEST`, default 10; `AGENT_DAILY_LIMIT_MEMBER`, default 40); token usage is logged as `agent-usage` lines.
+
 **Client on Cloudflare Pages (optional, faster worldwide).** Create a Pages project from this repo with build command `pnpm --filter @superworld/web build`, output directory `apps/web/dist`, and the environment variable `VITE_SERVER_URL` set to your Render URL. Then set `ALLOWED_ORIGINS` on Render to your Pages URL.
 
 ## Reading a playtest

@@ -2,6 +2,8 @@ import { Callbacks, Client, Predict, type Room } from "@colyseus/sdk";
 import { initPhysics, PlaceWorld, steerTowards, TICK_RATE } from "@superworld/core";
 import {
   type ChatBroadcast,
+  type AgentProgressMessage,
+  type AgentReplyMessage,
   type EditResultMessage,
   type Emote,
   type EmoteBroadcast,
@@ -44,6 +46,8 @@ import { InputController } from "./input.ts";
 import { save } from "./storage.ts";
 import {
   cameraLevel,
+  agentBusy,
+  agentLog,
   chatLog,
   chatOpen,
   editResult,
@@ -276,6 +280,8 @@ export class Game {
     for (const id of [...this.avatars.keys()]) this.removeAvatar(id);
     knocks.value = [];
     editResult.value = null;
+    agentLog.value = [];
+    agentBusy.value = null;
     chatLog.value = [];
   }
 
@@ -290,6 +296,7 @@ export class Game {
       visibility: info.visibility,
       isOwner: Boolean(userId && info.ownerId === userId),
       draftSteps: info.draftSteps,
+      agentAvailable: info.agentAvailable,
     };
     this.showScene(Scene.parse(info.scene));
   }
@@ -352,6 +359,22 @@ export class Game {
         ok: m.ok,
         text: m.ok ? (m.summary ?? "Done") : (m.error ?? "That didn't work"),
       };
+    });
+    this.room.onMessage("agent-progress", (m: AgentProgressMessage) => {
+      agentBusy.value = m;
+    });
+    this.room.onMessage("agent-reply", (m: AgentReplyMessage) => {
+      agentBusy.value = null;
+      agentLog.value = [
+        ...agentLog.value,
+        {
+          id: Date.now(),
+          from: "ai",
+          text: m.error ?? m.text,
+          steps: m.steps,
+          error: Boolean(m.error),
+        },
+      ];
     });
     this.room.onMessage("knock", (m: KnockBroadcast) => {
       if (!knocks.value.some((k) => k.userId === m.userId)) knocks.value = [...knocks.value, m];
@@ -600,6 +623,13 @@ export class Game {
   edit(tool: string, input: Record<string, unknown>): void {
     editResult.value = null;
     this.room.send("edit", { tool, input });
+  }
+
+  /** Asks the building agent to change my space. */
+  askAgent(text: string): void {
+    agentLog.value = [...agentLog.value, { id: Date.now(), from: "you", text }];
+    agentBusy.value = { state: "thinking" };
+    this.room.send("agent", { text });
   }
 
   undo(): void {

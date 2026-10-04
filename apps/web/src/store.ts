@@ -56,6 +56,7 @@ export interface CurrentPlace {
   visibility: "public" | "friends" | "private";
   isOwner: boolean;
   draftSteps: string[];
+  agentAvailable: boolean;
 }
 export const place = signal<CurrentPlace | null>(null);
 
@@ -73,3 +74,9 @@ export const knocks = signal<{ userId: string; name: string }[]>([]);
 
 /** The last Creator SDK result, for the build panel. */
 export const editResult = signal<{ ok: boolean; text: string } | null>(null);
+
+/** The conversation with the building agent in the current space. */
+export const agentLog = signal<
+  { id: number; from: "you" | "ai"; text: string; steps?: string[]; error?: boolean }[]
+>([]);
+export const agentBusy = signal<{ state: "thinking" | "working"; step?: string } | null>(null);

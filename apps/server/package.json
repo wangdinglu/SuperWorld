@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
     "@colyseus/core": "^0.18.18",
     "@colyseus/schema": "^5.0.35",
     "@colyseus/ws-transport": "^0.18.4",

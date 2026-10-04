@@ -1,7 +1,7 @@
 import { useState } from "preact/hooks";
 import { account, api } from "../account.ts";
 import type { Game } from "../game.ts";
-import { editResult, place } from "../store.ts";
+import { agentBusy, agentLog, editResult, place } from "../store.ts";
 
 const LIBRARY = [
   ["prim/tree", "🌲 Tree"],
@@ -20,7 +20,10 @@ const PALETTES = ["meadow", "dusk", "mint", "candy", "mono"] as const;
 export function BuildPanel(props: { game: Game; onClose(): void }) {
   const { game } = props;
   const p = place.value!;
-  const [tab, setTab] = useState<"add" | "objects" | "style" | "settings">("add");
+  const [tab, setTab] = useState<"ai" | "add" | "objects" | "style" | "settings">(
+    p.agentAvailable ? "ai" : "add",
+  );
+  const [prompt, setPrompt] = useState("");
   const objects = game.objects();
   const unsaved = p.draftSteps.length;
 
@@ -41,18 +44,90 @@ export function BuildPanel(props: { game: Game; onClose(): void }) {
         </button>
       </div>
       <div class="tabs" role="tablist">
-        {(["add", "objects", "style", "settings"] as const).map((t) => (
+        {(["ai", "add", "objects", "style", "settings"] as const).map((t) => (
           <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>
-            {t === "add"
-              ? "Add"
-              : t === "objects"
-                ? `Objects (${objects.length})`
-                : t === "style"
-                  ? "Style"
-                  : "Settings"}
+            {t === "ai"
+              ? "✨ Ask AI"
+              : t === "add"
+                ? "Add"
+                : t === "objects"
+                  ? `Objects (${objects.length})`
+                  : t === "style"
+                    ? "Style"
+                    : "Settings"}
           </button>
         ))}
       </div>
+
+      {tab === "ai" && (
+        <div class="stack">
+          {!p.agentAvailable ? (
+            <p class="muted-text">
+              The AI builder isn't set up on this server yet. Use the Add tab to build by hand.
+            </p>
+          ) : (
+            <>
+              <div class="agent-log" aria-live="polite">
+                {agentLog.value.length === 0 && (
+                  <p class="muted-text">
+                    Describe what you want, like “a cosy reading garden with benches and lamps” or
+                    “make it feel like night”. Every change can be undone, and nothing is kept until
+                    you press Save.
+                  </p>
+                )}
+                {agentLog.value.map((m) => (
+                  <div key={m.id} class={`msg ${m.from}${m.error ? " error" : ""}`}>
+                    {m.text}
+                    {m.steps && m.steps.length > 0 && (
+                      <details>
+                        <summary>
+                          {m.steps.length} change{m.steps.length === 1 ? "" : "s"}
+                        </summary>
+                        <ul>
+                          {m.steps.map((s, i) => (
+                            <li key={i}>{s}</li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                  </div>
+                ))}
+                {agentBusy.value && (
+                  <div class="msg ai busy">
+                    {agentBusy.value.state === "thinking"
+                      ? "Thinking…"
+                      : `Working: ${agentBusy.value.step?.replace(/_/g, " ")}`}
+                  </div>
+                )}
+              </div>
+              <form
+                class="row"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const text = prompt.trim();
+                  if (!text || agentBusy.value) return;
+                  game.askAgent(text);
+                  setPrompt("");
+                }}
+              >
+                <input
+                  value={prompt}
+                  maxLength={1000}
+                  placeholder="What should I build?"
+                  onInput={(e) => setPrompt((e.target as HTMLInputElement).value)}
+                />
+                <button
+                  class="primary"
+                  type="submit"
+                  disabled={!prompt.trim() || Boolean(agentBusy.value)}
+                >
+                  Ask
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+      )}
 
       {tab === "add" && (
         <div class="grid2">
