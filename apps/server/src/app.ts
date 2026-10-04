@@ -23,6 +23,7 @@ import { Knocks } from "./knocks.ts";
 import { PlaceRoom } from "./rooms/PlaceRoom.ts";
 import { registerSpaceRoutes } from "./spaces.ts";
 import { registerStudioRoutes } from "./studio.ts";
+import { registerMcpDoor } from "./mcp.ts";
 import { bearer, issueToken, verifyToken } from "./tokens.ts";
 
 /** The built web client, served by this process when present (single-service deploys). */
@@ -34,6 +35,8 @@ export interface Services {
   mailer: Mailer;
   /** The AI building agent; absent when not configured. */
   agent?: BuildingAgent;
+  /** The MCP door for outside agents (internal for now; off unless configured). */
+  mcp?: { issuerUrl: string; consentUrl: string };
 }
 
 const Profile = JoinOptions.omit({ protocol: true });
@@ -61,7 +64,7 @@ function session(user: User) {
 }
 
 export function createServer(services: Services) {
-  const { content, db, mailer, agent } = services;
+  const { content, db, mailer, agent, mcp } = services;
   const templates = new Map(content.templates.templates.map((t) => [t.id, t]));
   const editors = new SpaceEditors(db, templates);
   const knocks = new Knocks();
@@ -107,7 +110,10 @@ export function createServer(services: Services) {
     },
     express: async (app) => {
       const { default: express } = await import("express");
-      app.use(express.json({ limit: "4kb" }));
+      const smallJson = express.json({ limit: "4kb" });
+      const mcpJson = express.json({ limit: "64kb" });
+      // MCP requests carry tool calls and can be larger than the game's own API calls.
+      app.use((req, res, next) => (req.path === "/mcp" ? mcpJson : smallJson)(req, res, next));
       app.use((req, res, next) => {
         const origin = req.headers.origin;
         if (origin && (allowedOrigins.length === 0 || allowedOrigins.includes(origin))) {
@@ -205,6 +211,16 @@ export function createServer(services: Services) {
       });
 
       registerSpaceRoutes(app, { db, editors, knocks, liveRooms, requireUser });
+      if (mcp) {
+        registerMcpDoor(app, {
+          db,
+          editors,
+          getUser: (id) => getUser(db, id),
+          requireUser,
+          issuerUrl: mcp.issuerUrl,
+          consentUrl: mcp.consentUrl,
+        });
+      }
       registerStudioRoutes(app, {
         db,
         editors,

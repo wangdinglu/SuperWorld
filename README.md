@@ -69,6 +69,10 @@ tools/avatars     the code that builds the avatars
 
 **Client on Cloudflare Pages (optional, faster worldwide).** Create a Pages project from this repo with build command `pnpm --filter @superworld/web build`, output directory `apps/web/dist`, and the environment variable `VITE_SERVER_URL` set to your Render URL. Then set `ALLOWED_ORIGINS` on Render to your Pages URL.
 
+**MCP door (internal).** With `MCP_ENABLED=1`, the server speaks MCP (Streamable HTTP) at `<server>/mcp`, with OAuth: an MCP client such as Claude Desktop or Claude Code registers itself, the player approves it on a consent screen in the game, and the client can then list and create spaces and run every Creator SDK tool on them (`space_save` keeps the result). Tokens live in memory, so a server restart signs MCP clients out. The issuer URL is `RENDER_EXTERNAL_URL` on Render, or `SERVER_URL`.
+
+**Creator studio.** The ✨ Studio button turns an idea into three drafts built in the background (by the agent when it's configured, as quick sketches otherwise). Walk through them, steer one by talking, keep it, and submit it to the gallery.
+
 ## Reading a playtest
 
 The server log (Render → your service → Logs) has one JSON line per event:

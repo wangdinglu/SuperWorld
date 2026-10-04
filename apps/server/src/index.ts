@@ -33,11 +33,20 @@ for (const place of content.world.places) {
 const agent = BuildingAgent.fromEnv();
 if (!agent)
   console.log("AI building agent is off: set ANTHROPIC_API_KEY and AGENT_MODEL to turn it on.");
+// The MCP door is internal for now: on only when MCP_ENABLED=1.
+const serverUrl =
+  process.env.RENDER_EXTERNAL_URL ?? process.env.SERVER_URL ?? `http://localhost:${port}`;
+const mcp =
+  process.env.MCP_ENABLED === "1"
+    ? { issuerUrl: serverUrl, consentUrl: process.env.PUBLIC_URL ?? serverUrl }
+    : undefined;
+if (mcp) console.log(`MCP door is on at ${serverUrl}/mcp`);
 const server = createServer({
   content,
   db: database.db,
   mailer: createMailer(),
   ...(agent ? { agent } : {}),
+  ...(mcp ? { mcp } : {}),
 });
 await server.listen(port, "0.0.0.0");
 console.log(`SuperWorld game server listening on :${port} (database: ${database.kind})`);

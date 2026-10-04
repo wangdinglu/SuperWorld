@@ -16,6 +16,7 @@
     "@colyseus/ws-transport": "^0.18.4",
     "@dimforge/rapier3d-compat": "^0.21.0",
     "@electric-sql/pglite": "^0.5.8",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@superworld/core": "workspace:*",
     "@superworld/db": "workspace:*",
     "@superworld/protocol": "workspace:*",

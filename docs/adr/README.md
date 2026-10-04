@@ -15,3 +15,4 @@ One page per decision: context, decision, consequences. Add a new file rather th
 | [009](009-items-and-behaviours.md)        | Items and behaviours as template data, one shared implementation per kind                  | Accepted                                 |
 | [010](010-materials-and-style-effects.md) | Finishes as TSL materials, outlines as geometry, screen effects per tier                   | Accepted                                 |
 | [011](011-creator-studio.md)              | Creator studio drafts are spaces, built in the background; keep one, submit to the gallery | Accepted                                 |
+| [012](012-mcp-door.md)                    | The MCP door: SDK tools over Streamable HTTP with OAuth, behind a flag                     | Accepted                                 |

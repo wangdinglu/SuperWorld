@@ -65,7 +65,9 @@ export class SpaceEditor {
   /** Saves the draft as a new published revision. */
   async save(authorId: string): Promise<Scene> {
     const actors = new Set(this.session.history.map((h) => h.actor));
-    const actor = actors.size === 1 && actors.has("agent") ? "agent" : "player";
+    // Credit a single non-player door (the agent, an MCP client); mixed or manual edits are the player's.
+    const only = actors.size === 1 ? [...actors][0] : undefined;
+    const actor = only === "agent" || only === "mcp" ? only : "player";
     const saved = await saveRevision(this.db, {
       placeId: this.placeId,
       scene: this.session.scene,

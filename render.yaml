@@ -37,3 +37,6 @@ services:
         sync: false
       - key: AGENT_MODEL
         sync: false
+      # "1" turns on the MCP door for outside AI apps (internal for now).
+      - key: MCP_ENABLED
+        sync: false

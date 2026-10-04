@@ -28,6 +28,7 @@ import { BuildPanel } from "./BuildPanel.tsx";
 import { KnockPrompts } from "./KnockPrompts.tsx";
 import { SpacesPanel } from "./SpacesPanel.tsx";
 import { DraftCorridor, StudioPanel } from "./StudioPanel.tsx";
+import { McpConsent } from "./McpConsent.tsx";
 import { account } from "../account.ts";
 
 const EMOTE_LABEL: Record<Emote, string> = {
@@ -112,6 +113,7 @@ export function Hud(props: { game: Game }) {
         <DraftCorridor game={game} onOpenStudio={() => setPanel("studio")} />
       )}
       <KnockPrompts game={game} />
+      {!soloMode.value && <McpConsent />}
       {screen.value && (
         <div class="screen-backdrop" onClick={() => game.closeScreen()}>
           <div
