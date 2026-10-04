@@ -2,6 +2,7 @@ import { type AuthContext, type Client, Room } from "@colyseus/core";
 import { StateView } from "@colyseus/schema";
 import { createRng, initPhysics, PlaceWorld, TICK_RATE } from "@superworld/core";
 import {
+  AvatarMessage,
   ChatMessage,
   EmoteMessage,
   JoinOptions,
@@ -49,6 +50,9 @@ export class PlazaRoom extends Room<{
   private readonly visible = new Map<string, Set<string>>();
   private readonly chatLimit = new RateLimiter(5, 10_000);
   private readonly emoteLimit = new RateLimiter(2, 2_000);
+  private readonly avatarLimit = new RateLimiter(3, 5_000);
+  private avatarIds = new Set<string>();
+  private defaultAvatar = "";
   private readonly telemetryLimit = new RateLimiter(2, 20_000);
   private tickCount = 0;
   private stepMs = 0;
@@ -58,6 +62,8 @@ export class PlazaRoom extends Room<{
     if (!scene) throw new Error(`No scene for place "${options.placeId}"`);
     await initPhysics();
     this.world = PlaceWorld.build(scene, options.content.templates);
+    this.avatarIds = new Set(options.content.avatars.avatars.map((a) => a.id));
+    this.defaultAvatar = options.content.avatars.default;
     this.state.place = scene.place;
     this.state.revision = scene.revision;
     this.patchRate = 1000 / PATCH_RATE_HZ;
@@ -106,6 +112,14 @@ export class PlazaRoom extends Room<{
       this.broadcast("emote", payload);
     });
 
+    this.onMessage("avatar", (client, message: unknown) => {
+      const parsed = AvatarMessage.safeParse(message);
+      if (!parsed.success || !this.avatarIds.has(parsed.data.avatar)) return;
+      if (!this.avatarLimit.allow(client.sessionId)) return;
+      const player = this.state.players.get(client.sessionId);
+      if (player) player.avatar = parsed.data.avatar;
+    });
+
     this.onMessage("telemetry", (client, message: unknown) => {
       const parsed = TelemetryMessage.safeParse(message);
       if (!parsed.success || !this.telemetryLimit.allow(client.sessionId)) return;
@@ -145,8 +159,9 @@ export class PlazaRoom extends Room<{
     return identity;
   }
 
-  override onJoin(client: Client<{ auth: GuestIdentity }>): void {
+  override onJoin(client: Client<{ auth: GuestIdentity }>, options?: unknown): void {
     const identity = client.auth!;
+    const wanted = JoinOptions.safeParse(options).data?.avatar;
     const [x, y, z] = this.world.spawnPosition(this.rng(), this.rng());
     const player = new Player();
     Object.assign(player, {
@@ -158,6 +173,7 @@ export class PlazaRoom extends Room<{
       grounded: true,
       name: maskText(identity.name),
       colour: identity.colour,
+      avatar: wanted && this.avatarIds.has(wanted) ? wanted : this.defaultAvatar,
     });
     this.state.players.set(client.sessionId, player);
     this.world.addAvatar(client.sessionId, player);
@@ -177,6 +193,7 @@ export class PlazaRoom extends Room<{
     this.visible.delete(client.sessionId);
     this.chatLimit.forget(client.sessionId);
     this.emoteLimit.forget(client.sessionId);
+    this.avatarLimit.forget(client.sessionId);
     this.telemetryLimit.forget(client.sessionId);
     this.updateInterest();
   }

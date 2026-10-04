@@ -26,6 +26,8 @@ export const renderInfo = signal<{ backend: "webgpu" | "webgl2"; tier: Tier } | 
 export const cameraLevel = signal<"walk" | "overview">("walk");
 export const hint = signal("");
 export const chatOpen = signal(false);
+/** The avatar I'm wearing, as the server last confirmed it. */
+export const myAvatar = signal("");
 
 /** Locally muted players (by display name + colour, since session ids change on rejoin). */
 export const muted = signal<string[]>(load<string[]>("muted", []));

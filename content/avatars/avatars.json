@@ -1,0 +1,34 @@
+{
+  "schema": "superworld.avatars/1",
+  "default": "sprout",
+  "avatars": [
+    {
+      "id": "sprout",
+      "name": "Sprout",
+      "file": "sprout.vrm",
+      "style": { "form": "smooth", "surface": "soft", "colour": "meadow" },
+      "about": "A seedling with a leaf that sways. Rounded shapes and gentle shading, like the plaza."
+    },
+    {
+      "id": "pip",
+      "name": "Pip",
+      "file": "pip.vrm",
+      "style": { "form": "lowpoly", "surface": "toon", "colour": "candy" },
+      "about": "A faceted fox with a bouncy tail. Flat facets, hard cel shading and bold outlines."
+    },
+    {
+      "id": "inky",
+      "name": "Inky",
+      "file": "inky.vrm",
+      "style": { "form": "smooth", "surface": "ink", "colour": "mono" },
+      "about": "A doodle off a handwritten page. Brush outlines, cross-hatched shadows and inked hands."
+    },
+    {
+      "id": "bolt",
+      "name": "Bolt",
+      "file": "bolt.vrm",
+      "style": { "form": "voxel", "surface": "pbr", "colour": "dusk" },
+      "about": "A blocky robot with an LED face. Built from cubes, with metal panels, a glass screen and glowing lights."
+    }
+  ]
+}

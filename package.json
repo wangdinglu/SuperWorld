@@ -19,7 +19,8 @@
     "validate:content": "tsx tools/validate-content.ts",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm validate:content && pnpm test",
     "bots": "tsx tools/bots.ts",
-    "avatar:sprout": "tsx tools/avatars/sprout.ts"
+    "avatars": "tsx tools/avatars/build.ts",
+    "avatars:thumbnails": "tsx tools/avatars/thumbnails.ts"
   },
   "devDependencies": {
     "@colyseus/sdk": "^0.18.4",
@@ -27,6 +28,7 @@
     "@playwright/test": "1.63.0",
     "@superworld/protocol": "workspace:*",
     "@superworld/schema": "workspace:*",
+    "@superworld/style": "workspace:*",
     "@types/node": "^22.20.5",
     "dependency-cruiser": "^18.5.0",
     "eslint": "^10.12.0",

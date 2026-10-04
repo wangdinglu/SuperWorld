@@ -33,6 +33,15 @@ test("a laptop and a phone meet in the plaza", async ({ browser }) => {
     timeout: 10_000,
   });
 
+  // Both start as the default avatar; the laptop switches, and the phone sees the change.
+  type Hook = { __superworld: { avatars(): Record<string, string> } };
+  const shownOnPhone = () =>
+    phone.evaluate(() => (window as unknown as Hook).__superworld.avatars().Laptop);
+  await expect.poll(shownOnPhone, { timeout: 30_000 }).toBe("sprout");
+  await laptop.getByRole("button", { name: "Avatar", exact: true }).click();
+  await laptop.getByRole("radio", { name: /Inky/ }).click();
+  await expect.poll(shownOnPhone, { timeout: 30_000 }).toBe("inky");
+
   await phoneContext.close();
   await laptop.close();
 });

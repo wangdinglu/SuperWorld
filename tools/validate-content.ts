@@ -1,7 +1,8 @@
 // Validates every document under content/ against the schemas and checks cross-references.
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { checkContent, Scene, TemplateLibrary, World } from "@superworld/schema";
+import { AvatarLibrary, checkContent, Scene, TemplateLibrary, World } from "@superworld/schema";
+import { checkVrm } from "./avatars/check-vrm.ts";
 
 const dir = join(import.meta.dirname, "..", "content", "world");
 const read = (file: string): unknown => JSON.parse(readFileSync(join(dir, file), "utf8"));
@@ -36,10 +37,28 @@ for (const place of world?.places ?? []) {
 }
 if (world && templates) problems.push(...checkContent(world, templates, scenes));
 
+// Avatars: every listed file is a VRM 1.0 avatar that records the style the library says it has.
+const avatarDir = join(import.meta.dirname, "..", "content", "avatars");
+const avatars = parse(
+  "avatars.json",
+  AvatarLibrary,
+  JSON.parse(readFileSync(join(avatarDir, "avatars.json"), "utf8")),
+);
+for (const avatar of avatars?.avatars ?? []) {
+  const file = join(avatarDir, avatar.file);
+  if (!existsSync(file)) {
+    problems.push(`avatars.json: "${avatar.id}" names ${avatar.file}, which is missing`);
+    continue;
+  }
+  for (const p of checkVrm(readFileSync(file), avatar)) problems.push(`${avatar.file}: ${p}`);
+  if (!existsSync(join(avatarDir, `${avatar.id}.png`)))
+    problems.push(`avatars.json: "${avatar.id}" has no thumbnail (run pnpm avatars:thumbnails)`);
+}
+
 if (problems.length > 0) {
   console.error(`Content has ${problems.length} problem(s):\n- ${problems.join("\n- ")}`);
   process.exit(1);
 }
 console.log(
-  `Content OK: ${Object.keys(scenes).length} scene(s), ${templates?.templates.length} template(s).`,
+  `Content OK: ${Object.keys(scenes).length} scene(s), ${templates?.templates.length} template(s), ${avatars?.avatars.length} avatar(s).`,
 );

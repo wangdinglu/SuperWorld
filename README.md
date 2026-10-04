@@ -28,6 +28,7 @@ Open http://localhost:5173 in two browser windows (or on your phone, using your 
 | Overview camera | M, or scroll                                       | Pinch, or the map button                    |
 | Chat            | Enter                                              | Chat button                                 |
 | Emotes          | 1–4                                                | Emote button                                |
+| Switch avatar   | 🎭 button                                          | 🎭 button                                   |
 
 ## Checks
 
@@ -35,6 +36,8 @@ Open http://localhost:5173 in two browser windows (or on your phone, using your 
 pnpm check      # lint, package boundaries, formatting, types, content, unit tests
 pnpm test:e2e   # two browsers join the plaza (builds first)
 pnpm bots 50    # load test: 50 bot players wander a running server
+pnpm avatars    # rebuild the VRM avatars in content/avatars (made in code)
+pnpm avatars:thumbnails   # re-render their picker thumbnails (headless Chromium)
 ```
 
 ## Repository
@@ -48,6 +51,8 @@ packages/protocol network state, inputs and messages
 packages/style    style inheritance and palettes
 packages/render   three.js scene building, avatars, camera, quality tiers
 content/world     the world, templates and plaza scene, as data
+content/avatars   VRM 1.0 avatars, one per style, and their library
+tools/avatars     the code that builds the avatars
 ```
 
 ## Deploy (free tier)

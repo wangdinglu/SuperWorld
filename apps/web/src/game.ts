@@ -14,29 +14,33 @@ import {
 } from "@superworld/protocol";
 import {
   applyTier,
+  Avatar,
   buildPlace,
   CameraRig,
   createRenderer,
   detectTier,
   fogFor,
   FrameGovernor,
-  Mannequin,
+  skyEnvironment,
   type Tier,
   TIERS,
 } from "@superworld/render";
 import { Scene, TemplateLibrary, World } from "@superworld/schema";
-import { resolveStyle } from "@superworld/style";
+import { colourOf, LIGHT_RIGS, resolveStyle } from "@superworld/style";
 import * as THREE from "three/webgpu";
 import plazaJson from "../../../content/world/plaza.scene.json";
 import templatesJson from "../../../content/world/templates.json";
 import worldJson from "../../../content/world/world.json";
+import { avatarEntry, avatarUrl } from "./avatars.ts";
 import { serverUrl } from "./config.ts";
 import { InputController } from "./input.ts";
+import { save } from "./storage.ts";
 import {
   cameraLevel,
   chatOpen,
   hint,
   muted,
+  myAvatar,
   people,
   personKey,
   ping,
@@ -55,7 +59,9 @@ const BUBBLE_MS = 6000;
 
 interface AvatarView {
   player: Player;
-  mannequin: Mannequin;
+  avatar: Avatar;
+  /** Stops listening for this player's avatar changes. */
+  unlisten: () => void;
   tag: HTMLDivElement;
   bubble: HTMLDivElement;
   bubbleUntil: number;
@@ -84,11 +90,13 @@ export class Game {
   private sun!: THREE.DirectionalLight;
   private readonly raycaster = new THREE.Raycaster();
   private readonly tagLayer = document.getElementById("tags")!;
+  /** What physically based avatar materials reflect: the place's sky. */
+  private environment: THREE.Texture | undefined;
 
   constructor(private readonly canvas: HTMLCanvasElement) {}
 
   /** Starts the game. With no token, runs solo practice entirely in the browser (no server). */
-  async start(token: string | null, name: string, colour: string): Promise<void> {
+  async start(token: string | null, name: string, colour: string, avatar: string): Promise<void> {
     status.value = "connecting";
     this.tier = detectTier();
     const { renderer, backend } = await createRenderer(this.canvas, this.tier);
@@ -107,6 +115,8 @@ export class Game {
     this.pickables = place.pickables;
     this.sun = place.sun;
     this.sun.castShadow = TIERS[this.tier].shadows === "realtime";
+    const rig = LIGHT_RIGS[style.light];
+    this.environment = skyEnvironment(rig.skyTop, rig.skyBottom, colourOf("ground", style));
 
     this.tapMarker = new THREE.Mesh(
       new THREE.RingGeometry(0.35, 0.5, 24).rotateX(-Math.PI / 2),
@@ -134,13 +144,14 @@ export class Game {
         protocol: PROTOCOL_VERSION,
         name,
         colour,
+        avatar,
       });
       this.myId = this.room.sessionId;
       this.bindRoom();
       await this.waitForSelf();
       this.setupPrediction();
     } else {
-      this.startSolo(name, colour);
+      this.startSolo(name, colour, avatar);
     }
 
     this.input = new InputController(this.canvas, {
@@ -162,6 +173,14 @@ export class Game {
         return p ? { x: p.x, y: p.y, z: p.z } : undefined;
       },
       inputs: () => this.inputStats(),
+      /** Which avatar each player is shown as, once its model has loaded: name → avatar id. */
+      avatars: () =>
+        Object.fromEntries(
+          [...this.avatars.values()].map((v) => [
+            v.player.name,
+            v.avatar.shown ? avatarEntry(v.player.avatar).id : "",
+          ]),
+        ),
     };
 
     status.value = "playing";
@@ -194,10 +213,11 @@ export class Game {
       if (view) {
         view.bubble.textContent = m.text;
         view.bubbleUntil = performance.now() + BUBBLE_MS;
+        view.avatar.talk(talkSeconds(m.text));
       }
     });
     this.room.onMessage("emote", (m: EmoteBroadcast) => {
-      this.avatars.get(m.sessionId)?.mannequin.playEmote(m.emote);
+      this.avatars.get(m.sessionId)?.avatar.playEmote(m.emote);
     });
     this.room.onLeave((code) => {
       if (code !== 1000) {
@@ -243,12 +263,22 @@ export class Game {
 
   // ---------- solo practice (no server) ----------
 
-  private startSolo(name: string, colour: string): void {
+  private startSolo(name: string, colour: string, avatar: string): void {
     this.solo = true;
     soloMode.value = true;
     this.myId = "solo";
     const [x, y, z] = this.physics.spawnPosition(Math.random(), Math.random());
-    const me = { x, y, z, vy: 0, yaw: Math.PI, grounded: true, name, colour } as unknown as Player;
+    const me = {
+      x,
+      y,
+      z,
+      vy: 0,
+      yaw: Math.PI,
+      grounded: true,
+      name,
+      colour,
+      avatar: avatarEntry(avatar).id,
+    } as unknown as Player;
     this.soloMe = me;
     this.soloPrev = { x, y, z, yaw: Math.PI };
     this.physics.addAvatar(this.myId, me);
@@ -306,9 +336,20 @@ export class Game {
 
   private addAvatar(sessionId: string, player: Player): void {
     if (this.avatars.has(sessionId)) return;
-    const mannequin = new Mannequin(player.colour, TIERS[this.tier].shadows === "realtime");
-    mannequin.root.position.set(player.x, player.y, player.z);
-    this.three.add(mannequin.root);
+    const avatar = new Avatar(avatarUrl(player.avatar), player.colour, {
+      castShadow: TIERS[this.tier].shadows === "realtime",
+      environment: this.environment,
+    });
+    avatar.root.position.set(player.x, player.y, player.z);
+    this.three.add(avatar.root);
+    if (sessionId === this.myId) myAvatar.value = avatarEntry(player.avatar).id;
+    // Online, the server confirms avatar switches through the player's state.
+    const unlisten = this.solo
+      ? () => {}
+      : Callbacks.get(this.room).listen(player, "avatar", (id: string) => {
+          avatar.setModel(avatarUrl(id));
+          if (sessionId === this.myId) myAvatar.value = avatarEntry(id).id;
+        });
     const tag = document.createElement("div");
     tag.className = "tag";
     const label = document.createElement("span");
@@ -322,7 +363,8 @@ export class Game {
     this.tagLayer.append(tag);
     this.avatars.set(sessionId, {
       player,
-      mannequin,
+      avatar,
+      unlisten,
       tag,
       bubble,
       bubbleUntil: 0,
@@ -336,8 +378,9 @@ export class Game {
   private removeAvatar(sessionId: string): void {
     const view = this.avatars.get(sessionId);
     if (!view) return;
-    this.three.remove(view.mannequin.root);
-    view.mannequin.dispose();
+    this.three.remove(view.avatar.root);
+    view.avatar.dispose();
+    view.unlisten();
     view.tag.remove();
     this.avatars.delete(sessionId);
     this.refreshPeople();
@@ -365,6 +408,7 @@ export class Game {
       if (me) {
         me.bubble.textContent = trimmed.slice(0, 200);
         me.bubbleUntil = performance.now() + BUBBLE_MS;
+        me.avatar.talk(talkSeconds(trimmed));
       }
       return;
     }
@@ -372,8 +416,23 @@ export class Game {
   }
 
   emote(emote: Emote): void {
-    if (this.solo) this.avatars.get(this.myId)?.mannequin.playEmote(emote);
+    if (this.solo) this.avatars.get(this.myId)?.avatar.playEmote(emote);
     else this.room.send("emote", { emote });
+  }
+
+  /** Switches my avatar. Online the server confirms it, and everyone nearby sees the change. */
+  switchAvatar(id: string): void {
+    const entry = avatarEntry(id);
+    save("avatar", entry.id);
+    if (!this.solo) {
+      this.room.send("avatar", { avatar: entry.id });
+      return;
+    }
+    const me = this.avatars.get(this.myId);
+    if (!me) return;
+    me.player.avatar = entry.id;
+    me.avatar.setModel(avatarUrl(entry.id));
+    myAvatar.value = entry.id;
   }
 
   report(sessionId: string, reason: string): void {
@@ -469,7 +528,7 @@ export class Game {
       const x = this.value(p, "x");
       const y = this.value(p, "y");
       const z = this.value(p, "z");
-      const pos = view.mannequin.root.position;
+      const pos = view.avatar.root.position;
       pos.set(x, y, z);
       const moved = Math.hypot(x - view.lastPos.x, z - view.lastPos.z);
       view.speed += ((dt > 0 ? moved / dt : 0) - view.speed) * Math.min(1, dt * 10);
@@ -478,18 +537,18 @@ export class Game {
       let diff = targetYaw - view.yaw;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       view.yaw += diff * Math.min(1, dt * 12);
-      view.mannequin.root.rotation.y = view.yaw;
-      view.mannequin.update(dt, view.speed, p.grounded || y < 0.05);
+      view.avatar.root.rotation.y = view.yaw;
+      view.avatar.update(dt, view.speed, p.grounded || y < 0.05);
     }
 
     // 3. Camera, sun and overlays follow my avatar.
     const mine = this.avatars.get(this.myId);
     if (mine) {
-      this.rig.update(mine.mannequin.root.position, dt);
-      this.sunTarget.copy(mine.mannequin.root.position);
+      this.rig.update(mine.avatar.root.position, dt);
+      this.sunTarget.copy(mine.avatar.root.position);
       this.sun.target.position.copy(this.sunTarget);
       this.sun.position.set(this.sunTarget.x + 18, 60, this.sunTarget.z + 12);
-      this.updatePortalHint(mine.mannequin.root.position);
+      this.updatePortalHint(mine.avatar.root.position);
     }
     this.updateTags(now);
     this.tapMarker.rotation.y += dt * 2;
@@ -503,8 +562,8 @@ export class Game {
     const v = new THREE.Vector3();
     const overview = this.rig.level === "overview";
     for (const view of this.avatars.values()) {
-      v.copy(view.mannequin.root.position);
-      v.y += 2.1;
+      v.copy(view.avatar.root.position);
+      v.y += view.avatar.height + 0.35;
       const dist = v.distanceTo(cam.position);
       const isMuted = muted.value.includes(personKey(view.player));
       v.project(cam);
@@ -546,3 +605,6 @@ export class Game {
     this.rig?.resize(innerWidth / innerHeight);
   }
 }
+
+/** How long the mouth moves for a chat message. */
+const talkSeconds = (text: string) => 0.4 + text.length * 0.05;

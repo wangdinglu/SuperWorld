@@ -1,6 +1,8 @@
 import { useState } from "preact/hooks";
 import { NAME_MAX } from "@superworld/protocol";
+import { avatarEntry, avatarLibrary } from "../avatars.ts";
 import { load } from "../storage.ts";
+import { AvatarPicker } from "./AvatarPicker.tsx";
 
 export const COLOURS = [
   "#f2785c",
@@ -16,13 +18,14 @@ export const COLOURS = [
 export function Login(props: {
   busy: boolean;
   error: string;
-  onEnter(name: string, colour: string): void;
-  onSolo(name: string, colour: string): void;
+  onEnter(name: string, colour: string, avatar: string): void;
+  onSolo(name: string, colour: string, avatar: string): void;
 }) {
   const [name, setName] = useState(load("name", ""));
   const [colour, setColour] = useState(
     load("colour", COLOURS[Math.floor(Math.random() * COLOURS.length)]!),
   );
+  const [avatar, setAvatar] = useState(avatarEntry(load("avatar", avatarLibrary.default)).id);
   const valid = name.trim().length > 0;
 
   return (
@@ -31,12 +34,13 @@ export function Login(props: {
         class="card login"
         onSubmit={(e) => {
           e.preventDefault();
-          if (valid && !props.busy) props.onEnter(name.trim(), colour);
+          if (valid && !props.busy) props.onEnter(name.trim(), colour, avatar);
         }}
       >
         <h1>SuperWorld</h1>
         <p class="lead">
-          One shared world, from a link. Pick a name and a colour, then step into the plaza.
+          One shared world, from a link. Pick a name, an avatar and a colour, then step into the
+          plaza.
         </p>
         <label class="field">
           <span>Name</span>
@@ -49,6 +53,11 @@ export function Login(props: {
             autoFocus
           />
         </label>
+        <div class="field">
+          <span id="avatar-label">Avatar</span>
+          <AvatarPicker label="Avatar" selected={avatar} onPick={setAvatar} />
+          <p class="avatar-about">{avatarEntry(avatar).about}</p>
+        </div>
         <div class="field">
           <span id="colour-label">Colour</span>
           <div class="swatches" role="radiogroup" aria-labelledby="colour-label">
@@ -78,7 +87,7 @@ export function Login(props: {
           type="button"
           class="secondary"
           disabled={!valid || props.busy}
-          onClick={() => props.onSolo(name.trim(), colour)}
+          onClick={() => props.onSolo(name.trim(), colour, avatar)}
         >
           Practice solo (no server needed)
         </button>
