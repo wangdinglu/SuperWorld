@@ -187,6 +187,10 @@ export interface PlaceInfo {
   draftSteps: string[];
   /** Whether this server has the AI building agent configured. */
   agentAvailable: boolean;
+  /** "draft" while the space is a creator studio draft; "kept" once it's a real space. */
+  stage: "draft" | "kept";
+  /** Whether the owner submitted it to the public gallery. */
+  submitted: boolean;
 }
 
 /** Server → clients: the draft changed by one step. */

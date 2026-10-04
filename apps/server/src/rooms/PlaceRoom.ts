@@ -476,6 +476,8 @@ export class PlaceRoom extends Room<{
       scene: this.scene,
       draftSteps: this.editor?.draftSteps ?? [],
       agentAvailable: Boolean(this.options.agent),
+      stage: this.place?.stage ?? "kept",
+      submitted: Boolean(this.place?.submittedAt),
     };
   }
 

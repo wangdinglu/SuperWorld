@@ -12,6 +12,9 @@ interface SpaceSummary {
 /** Your spaces: create one, go to it, or go back to the plaza. */
 export function SpacesPanel(props: { game: Game; onClose(): void }) {
   const [spaces, setSpaces] = useState<SpaceSummary[] | null>(null);
+  const [gallery, setGallery] = useState<{ id: string; name: string; ownerName: string | null }[]>(
+    [],
+  );
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -20,6 +23,8 @@ export function SpacesPanel(props: { game: Game; onClose(): void }) {
   const refresh = async () => {
     const res = await api("/api/spaces", { token: token! });
     if (res.ok) setSpaces((await res.json()) as SpaceSummary[]);
+    const shared = await api("/api/gallery");
+    if (shared.ok) setGallery((await shared.json()) as typeof gallery);
   };
   useEffect(() => {
     void refresh();
@@ -93,6 +98,27 @@ export function SpacesPanel(props: { game: Game; onClose(): void }) {
         </button>
       </form>
       {error && <p class="error">{error}</p>}
+      {gallery.length > 0 && (
+        <>
+          <h2>Gallery</h2>
+          <ul class="gallery">
+            {gallery.map((g) => (
+              <li key={g.id}>
+                <span class="grow">
+                  {g.name} <span class="muted-text small">· {g.ownerName ?? "someone"}</span>
+                </span>
+                <button
+                  class="link"
+                  disabled={busy || place.value?.id === g.id}
+                  onClick={() => go(() => props.game.goToSpace(g.id))}
+                >
+                  {place.value?.id === g.id ? "Here" : "Visit"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
       <button type="button" class="link" onClick={props.onClose}>
         Close
       </button>

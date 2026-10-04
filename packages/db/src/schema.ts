@@ -54,6 +54,17 @@ export const places = pgTable(
       .default("private"),
     /** The revision visitors see. Edits create new revisions; publishing moves this pointer. */
     publishedRevision: integer("published_revision").notNull().default(0),
+    /** Creator studio drafts are spaces too, until the owner keeps one (the rest are deleted). */
+    stage: text("stage", { enum: ["draft", "kept"] })
+      .notNull()
+      .default("kept"),
+    /** For drafts: the idea they came from, their batch, and how background building went. */
+    idea: text("idea"),
+    batchId: text("batch_id"),
+    buildState: text("build_state", { enum: ["building", "ready", "failed"] }),
+    buildNote: text("build_note"),
+    /** Set when the owner submits a kept space to the public gallery. */
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

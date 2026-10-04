@@ -22,6 +22,7 @@ import { SpaceEditors } from "./editors.ts";
 import { Knocks } from "./knocks.ts";
 import { PlaceRoom } from "./rooms/PlaceRoom.ts";
 import { registerSpaceRoutes } from "./spaces.ts";
+import { registerStudioRoutes } from "./studio.ts";
 import { bearer, issueToken, verifyToken } from "./tokens.ts";
 
 /** The built web client, served by this process when present (single-service deploys). */
@@ -204,6 +205,13 @@ export function createServer(services: Services) {
       });
 
       registerSpaceRoutes(app, { db, editors, knocks, liveRooms, requireUser });
+      registerStudioRoutes(app, {
+        db,
+        editors,
+        liveRooms,
+        requireUser,
+        ...(agent ? { agent } : {}),
+      });
 
       /** World manifest, so the client can list places. */
       app.get("/api/world", (_req, res) => {

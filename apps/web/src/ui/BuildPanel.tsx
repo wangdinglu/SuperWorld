@@ -261,6 +261,23 @@ export function BuildPanel(props: { game: Game; onClose(): void }) {
           <p class="muted-text small">
             Private spaces need a knock; you let visitors in while you're inside.
           </p>
+          {p.stage === "kept" &&
+            (p.submitted ? (
+              <p class="small">✓ In the gallery: anyone can visit from the Spaces panel.</p>
+            ) : (
+              <button
+                class="secondary"
+                onClick={() => {
+                  if (unsaved > 0 && !confirm("Submit without your unsaved changes?")) return;
+                  void api(`/api/spaces/${p.id}/submit`, {
+                    body: {},
+                    token: account.value!.token,
+                  });
+                }}
+              >
+                Submit to the gallery (makes it public)
+              </button>
+            ))}
           <button
             class="secondary"
             onClick={() => {

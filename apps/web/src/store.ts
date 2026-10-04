@@ -57,6 +57,9 @@ export interface CurrentPlace {
   isOwner: boolean;
   draftSteps: string[];
   agentAvailable: boolean;
+  /** A creator studio draft until the owner keeps it. */
+  stage: "draft" | "kept";
+  submitted: boolean;
 }
 export const place = signal<CurrentPlace | null>(null);
 

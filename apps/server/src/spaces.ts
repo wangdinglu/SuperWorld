@@ -18,7 +18,7 @@ import type { Knocks } from "./knocks.ts";
 import { maskText } from "./moderation.ts";
 import type { PlaceRoom } from "./rooms/PlaceRoom.ts";
 
-const SPACE_LIMIT = { guest: 1, member: 5 } as const;
+export const SPACE_LIMIT = { guest: 1, member: 5 } as const;
 const NewSpace = z.object({ name: z.string().trim().min(1).max(40) });
 const SpaceUpdate = z.object({
   name: z.string().trim().min(1).max(40).optional(),
@@ -45,7 +45,7 @@ export function starterScene(id: string): Scene {
   });
 }
 
-const newSpaceId = () =>
+export const newSpaceId = (): string =>
   `s-${[...randomBytes(10)].map((b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("")}`;
 
 export interface SpaceRouteDeps {

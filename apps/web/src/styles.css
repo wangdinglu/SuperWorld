@@ -192,6 +192,7 @@ button {
 }
 .hud button,
 .hud input,
+.hud textarea,
 .hud .panel,
 .hud .emotes,
 .hud .screen-backdrop,
@@ -735,4 +736,49 @@ button {
   font-size: 13px;
   color: var(--muted);
   line-height: 1.4;
+}
+
+/* Creator studio */
+.studio textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  resize: vertical;
+}
+.drafts,
+.gallery {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.drafts li,
+.gallery li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.corridor {
+  position: absolute;
+  top: calc(max(12px, env(safe-area-inset-top)) + 92px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(360px, calc(100vw - 24px));
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+  pointer-events: auto;
+}
+.corridor p {
+  margin: 0;
+}
+.corridor .link {
+  font-size: 22px;
+  padding: 0 8px;
 }

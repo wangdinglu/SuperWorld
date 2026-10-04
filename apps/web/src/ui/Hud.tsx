@@ -27,6 +27,7 @@ import { BagPanel } from "./BagPanel.tsx";
 import { BuildPanel } from "./BuildPanel.tsx";
 import { KnockPrompts } from "./KnockPrompts.tsx";
 import { SpacesPanel } from "./SpacesPanel.tsx";
+import { DraftCorridor, StudioPanel } from "./StudioPanel.tsx";
 import { account } from "../account.ts";
 
 const EMOTE_LABEL: Record<Emote, string> = {
@@ -42,7 +43,7 @@ export function Hud(props: { game: Game }) {
   const [showPeople, setShowPeople] = useState(false);
   const [showEmotes, setShowEmotes] = useState(false);
   const [panel, setPanel] = useState<
-    "none" | "account" | "spaces" | "build" | "people" | "bag" | "avatar"
+    "none" | "account" | "spaces" | "build" | "people" | "bag" | "avatar" | "studio"
   >("none");
   const showAccount = panel === "account";
   const toggle = (p: typeof panel) => setPanel(panel === p ? "none" : p);
@@ -69,6 +70,11 @@ export function Hud(props: { game: Game }) {
         {!soloMode.value && (
           <button class="pill" onClick={() => toggle("spaces")} aria-expanded={panel === "spaces"}>
             Spaces
+          </button>
+        )}
+        {!soloMode.value && (
+          <button class="pill" onClick={() => toggle("studio")} aria-expanded={panel === "studio"}>
+            ✨ Studio
           </button>
         )}
         {place.value?.isOwner && (
@@ -101,6 +107,10 @@ export function Hud(props: { game: Game }) {
         <BuildPanel game={game} onClose={() => setPanel("none")} />
       )}
       {panel === "bag" && <BagPanel game={game} onClose={() => setPanel("none")} />}
+      {panel === "studio" && <StudioPanel game={game} onClose={() => setPanel("none")} />}
+      {place.value?.stage === "draft" && place.value.isOwner && panel === "none" && (
+        <DraftCorridor game={game} onOpenStudio={() => setPanel("studio")} />
+      )}
       <KnockPrompts game={game} />
       {screen.value && (
         <div class="screen-backdrop" onClick={() => game.closeScreen()}>

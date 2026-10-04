@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import type { Scene } from "@superworld/schema";
 import type { Db } from "./client.ts";
 import { placeRevisions, places } from "./schema.ts";
@@ -46,7 +46,13 @@ export async function seedPlace(
 
 export async function createSpace(
   db: Db,
-  input: { id: string; ownerId: string; name: string; scene: Scene },
+  input: {
+    id: string;
+    ownerId: string;
+    name: string;
+    scene: Scene;
+    draft?: { idea: string; batchId: string };
+  },
 ): Promise<Place> {
   return db.transaction(async (tx) => {
     const [place] = await tx
@@ -58,6 +64,14 @@ export async function createSpace(
         ownerId: input.ownerId,
         visibility: "private",
         publishedRevision: input.scene.revision,
+        ...(input.draft
+          ? {
+              stage: "draft" as const,
+              idea: input.draft.idea,
+              batchId: input.draft.batchId,
+              buildState: "building" as const,
+            }
+          : {}),
       })
       .returning();
     await tx.insert(placeRevisions).values({
@@ -76,12 +90,77 @@ export async function getPlace(db: Db, id: string): Promise<Place | undefined> {
   return place;
 }
 
+/** A player's kept spaces (studio drafts are listed separately). */
 export async function listSpaces(db: Db, ownerId: string): Promise<Place[]> {
   return db
     .select()
     .from(places)
-    .where(and(eq(places.ownerId, ownerId), eq(places.kind, "space")))
+    .where(and(eq(places.ownerId, ownerId), eq(places.kind, "space"), eq(places.stage, "kept")))
     .orderBy(desc(places.updatedAt));
+}
+
+/** A player's studio drafts, oldest first (the order they were made in). */
+export async function listDrafts(db: Db, ownerId: string): Promise<Place[]> {
+  return db
+    .select()
+    .from(places)
+    .where(and(eq(places.ownerId, ownerId), eq(places.stage, "draft")))
+    .orderBy(places.createdAt, places.name);
+}
+
+export async function setBuildState(
+  db: Db,
+  id: string,
+  state: NonNullable<Place["buildState"]>,
+  note: string | null = null,
+): Promise<void> {
+  await db.update(places).set({ buildState: state, buildNote: note }).where(eq(places.id, id));
+}
+
+/** Turns a draft into an ordinary space. */
+export async function keepDraft(db: Db, id: string, name: string): Promise<void> {
+  await db
+    .update(places)
+    .set({ stage: "kept", name, buildState: null, buildNote: null, updatedAt: new Date() })
+    .where(eq(places.id, id));
+}
+
+export async function deletePlaces(db: Db, ids: string[]): Promise<void> {
+  if (ids.length > 0) await db.delete(places).where(inArray(places.id, ids));
+}
+
+/** Drafts nobody kept within a day are cleared away. Returns the ids removed. */
+export async function expireDrafts(db: Db, olderThan: Date): Promise<string[]> {
+  const rows = await db
+    .delete(places)
+    .where(and(eq(places.stage, "draft"), lt(places.createdAt, olderThan)))
+    .returning({ id: places.id });
+  return rows.map((r) => r.id);
+}
+
+/** Puts a kept space in the public gallery (and makes it public). */
+export async function submitToGallery(db: Db, id: string): Promise<void> {
+  await db
+    .update(places)
+    .set({ visibility: "public", submittedAt: new Date(), updatedAt: new Date() })
+    .where(eq(places.id, id));
+}
+
+/** Public spaces their owners submitted, newest first. */
+export async function listGallery(db: Db, limit = 30): Promise<Place[]> {
+  return db
+    .select()
+    .from(places)
+    .where(
+      and(
+        eq(places.kind, "space"),
+        eq(places.stage, "kept"),
+        eq(places.visibility, "public"),
+        isNotNull(places.submittedAt),
+      ),
+    )
+    .orderBy(desc(places.submittedAt))
+    .limit(limit);
 }
 
 export async function getRevision(

@@ -360,6 +360,8 @@ export class Game {
       isOwner: Boolean(userId && info.ownerId === userId),
       draftSteps: info.draftSteps,
       agentAvailable: info.agentAvailable,
+      stage: info.stage,
+      submitted: info.submitted,
     };
     this.showScene(Scene.parse(info.scene));
   }
