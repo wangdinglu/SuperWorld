@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { openDatabase, seedPlace } from "@superworld/db";
+import { BuildingAgent } from "./agent.ts";
 import { createServer } from "./app.ts";
 import { loadContent } from "./content.ts";
 import { createMailer } from "./mailer.ts";
@@ -29,6 +30,14 @@ for (const place of content.world.places) {
   }
 }
 
-const server = createServer({ content, db: database.db, mailer: createMailer() });
+const agent = BuildingAgent.fromEnv();
+if (!agent)
+  console.log("AI building agent is off: set ANTHROPIC_API_KEY and AGENT_MODEL to turn it on.");
+const server = createServer({
+  content,
+  db: database.db,
+  mailer: createMailer(),
+  ...(agent ? { agent } : {}),
+});
 await server.listen(port, "0.0.0.0");
 console.log(`SuperWorld game server listening on :${port} (database: ${database.kind})`);

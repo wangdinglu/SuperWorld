@@ -17,6 +17,7 @@ import { z } from "zod";
 import type { Content } from "./content.ts";
 import type { Mailer } from "./mailer.ts";
 import { maskText, RateLimiter } from "./moderation.ts";
+import type { BuildingAgent } from "./agent.ts";
 import { SpaceEditors } from "./editors.ts";
 import { Knocks } from "./knocks.ts";
 import { PlaceRoom } from "./rooms/PlaceRoom.ts";
@@ -30,6 +31,8 @@ export interface Services {
   content: Content;
   db: Db;
   mailer: Mailer;
+  /** The AI building agent; absent when not configured. */
+  agent?: BuildingAgent;
 }
 
 const Profile = JoinOptions.omit({ protocol: true });
@@ -57,7 +60,7 @@ function session(user: User) {
 }
 
 export function createServer(services: Services) {
-  const { content, db, mailer } = services;
+  const { content, db, mailer, agent } = services;
   const templates = new Map(content.templates.templates.map((t) => [t.id, t]));
   const editors = new SpaceEditors(db, templates);
   const knocks = new Knocks();
@@ -97,6 +100,7 @@ export function createServer(services: Services) {
         editors,
         knocks,
         liveRooms,
+        ...(agent ? { agent } : {}),
         kind: "space",
       }).filterBy(["placeId"]),
     },
