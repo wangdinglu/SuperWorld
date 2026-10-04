@@ -31,6 +31,8 @@ test("a player makes a space, builds in it, and a friend visits", async ({ brows
   const link = owner.url();
   expect(link).toContain("space=s-");
 
+  // CI renders in software on two cores: shrink the owner's view so the friend's page can load.
+  await owner.setViewportSize({ width: 320, height: 240 });
   const friend = await browser.newPage({ viewport: { width: 400, height: 700 } });
   await enter(friend, "Friend", link.replace(/^https?:\/\/[^/]+/, ""));
   await expect(friend.locator(".topbar")).toContainText("Sea Library", { timeout: 30_000 });
