@@ -18,7 +18,8 @@
     "test:e2e": "playwright test",
     "validate:content": "tsx tools/validate-content.ts",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm validate:content && pnpm test",
-    "bots": "tsx tools/bots.ts"
+    "bots": "tsx tools/bots.ts",
+    "avatar:sprout": "tsx tools/avatars/sprout.ts"
   },
   "devDependencies": {
     "@colyseus/sdk": "^0.18.4",
