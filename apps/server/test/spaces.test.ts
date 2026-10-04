@@ -7,7 +7,6 @@ import {
   type PlaceInfo,
   type ScenePatchBroadcast,
 } from "@superworld/protocol";
-import { BuildingAgent } from "../src/agent.ts";
 import { createServer } from "../src/app.ts";
 import { loadContent } from "../src/content.ts";
 
@@ -21,50 +20,10 @@ await seedPlace(database.db, {
   name: "Plaza",
   scene: content.scenes.plaza!,
 });
-// A scripted stand-in for Claude: places a planter, then summarises.
-const scriptedAgent = new BuildingAgent(
-  {
-    async create(params) {
-      const last = params.messages.at(-1)!;
-      const toolTurn =
-        Array.isArray(last.content) && last.content.some((b: any) => b.type === "tool_result");
-      const base = {
-        type: "message",
-        role: "assistant",
-        model: "fake",
-        usage: { input_tokens: 1, output_tokens: 1 },
-      };
-      return (
-        toolTurn
-          ? {
-              ...base,
-              id: "m2",
-              stop_reason: "end_turn",
-              content: [{ type: "text", text: "Added a planter." }],
-            }
-          : {
-              ...base,
-              id: "m1",
-              stop_reason: "tool_use",
-              content: [
-                {
-                  type: "tool_use",
-                  id: "t1",
-                  name: "scene_place_object",
-                  input: { template: "prim/planter", x: -5, z: 5 },
-                },
-              ],
-            }
-      ) as never;
-    },
-  },
-  { model: "fake", maxRounds: 4, dailyLimit: { guest: 5, member: 5 } },
-);
 const server = createServer({
   content,
   db: database.db,
   mailer: { sendLoginLink: async () => {} },
-  agent: scriptedAgent,
 });
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const rooms: Room[] = [];
@@ -225,23 +184,6 @@ describe("spaces", () => {
     // Everyone visiting one space shares one room.
     expect(walkIn.room.roomId).toBe(rooms[rooms.length - 3]!.roomId);
     await until(() => walkIn.room.state.players?.size === 3);
-  });
-
-  it("lets the owner ask the building agent, with progress and live edits", async () => {
-    const home = await joinSpace(owner, spaceId);
-    expect(home.info.place?.agentAvailable).toBe(true);
-    const progress: any[] = [];
-    const replies: any[] = [];
-    home.room.onMessage("agent-progress", (m: any) => progress.push(m));
-    home.room.onMessage("agent-reply", (m: any) => replies.push(m));
-    home.room.send("agent", { text: "add some greenery" });
-    await until(() => replies.length === 1);
-    expect(replies[0]).toMatchObject({
-      text: "Added a planter.",
-      steps: [expect.stringContaining("Planter")],
-    });
-    expect(progress.map((p) => p.step ?? p.state)).toEqual(["thinking", "scene_place_object"]);
-    expect(home.info.patches.length).toBeGreaterThan(0);
   });
 
   it("lists the tools for outside agents", async () => {

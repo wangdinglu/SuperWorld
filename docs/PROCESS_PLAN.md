@@ -3,7 +3,7 @@
 > **Status:** draft for review · 3 Oct 2026
 > How we build [ARCHITECTURE.md](ARCHITECTURE.md), step by step. Every phase ships something playable and ends at a gate from the [plan](plan/index.html).
 >
-> **Status (4 Oct 2026):** Phase 1 is complete and live at https://wangdinglu.github.io/SuperWorld/ (solo practice until a game server is connected). Phase 2 is in progress: M2.1 (accounts), M2.4 (Creator SDK), M2.5 (private spaces with a build panel), M2.6 (the building agent), M2.8 (items and behaviours: sit, take, hold, throw, wear, play, read, with an inventory) M2.9 (finishes, outlines, atmosphere and screen effects in the style mixer) M2.10 (the creator studio: three drafts per idea, a corridor to walk and steer them, keep and submit to a gallery) and M2.11 (the MCP door, behind `MCP_ENABLED`) are done. The agent needs `ANTHROPIC_API_KEY` and `AGENT_MODEL` on the server, and an eval set of real requests before quotas are final. VRM avatars and the picker landed early (ADR-008); the rest of M2.2/M2.3/M2.7 (asset pipeline, sprites, generated avatars) is in a separate track.
+> **Status (4 Oct 2026):** Phase 1 is complete and live at https://wangdinglu.github.io/SuperWorld/ (solo practice until a game server is connected). Phase 2 is in progress: M2.1 (accounts), M2.4 (Creator SDK), M2.5 (private spaces with a build panel), M2.6 (AI building, now through players' own agents: ADR-013), M2.8 (items and behaviours: sit, take, hold, throw, wear, play, read, with an inventory), M2.9 (finishes, outlines, atmosphere and screen effects in the style mixer), M2.10 (the creator studio: three sketched drafts per idea to walk through, rebuild with your AI, keep and submit to a gallery) and M2.11 (the MCP door, on by default) are done. The servers run no language model and need no model key. VRM avatars and the picker landed early (ADR-008); the rest of M2.2/M2.3/M2.7 (asset pipeline, sprites, generated avatars) is in a separate track.
 
 ## At a glance
 
@@ -11,7 +11,7 @@
 | ------------------ | ------------------------------------------------------------------------ | --------------------------------------- | ------------- |
 | 0 · Foundations    | repo, tooling, CI, docs                                                  | `pnpm dev` runs and CI is green         | 1–2 days      |
 | 1 · Walkable world | a shared plaza on phones and laptops                                     | Friends meet on phone and laptop        | 6–8 weeks     |
-| 2 · AI creation    | avatars, Creator SDK and agent, private spaces, studio                   | A new player builds a room without help | 12–16 weeks   |
+| 2 · AI creation    | avatars, Creator SDK and MCP door, private spaces, studio                | A new player builds a room without help | 12–16 weeks   |
 | 3 · Districts      | arena, culture district, screens, atlas, scripts and shaders, moderation | Moderation live for public publishing   | 12–16 weeks   |
 | 4 · Public beta    | scale, voice, safety, quotas, cost dashboards                            | Cost per player within budget           | 8–10 weeks    |
 
@@ -129,12 +129,12 @@ _Done when_ the plaza holds 30 fps on a mid-range phone with 50 players in the s
 | M2.3 VRM avatars                    | three-vrm, a default avatar set, VRM animation emotes, 2D sprites (three-vrm, the set and the picker done early: ADR-008)                 | players pick a VRM avatar and see each other's in 3D and 2D                                               |
 | M2.4 Creator SDK v1 ✅              | tool registry, patch log, budgets, draft / accept / undo, API door                                                                        | every tool has schema and budget tests; undo restores the exact previous revision                         |
 | M2.5 Private spaces ✅              | space rooms that start and stop on demand, access policies, knocking, links, revisions                                                    | a friend knocks, gets let in, and watches edits happen live                                               |
-| M2.6 Building agent ✅              | agent panel, Claude tool use over the SDK, async jobs, an eval set, quotas, logs                                                          | one sentence becomes a themed room within budget, and every step can be undone                            |
+| M2.6 Building agent ✅              | ~~agent panel, Claude tool use over the SDK~~ superseded (ADR-013): players bring their own agents through the MCP door                   | one sentence becomes a themed room within budget, and every step can be undone                            |
 | M2.7 Avatar generation              | describe → concept → mesh → rig → VRM → checks, behind a provider adapter                                                                 | a sentence becomes a checked, phone-ready VRM avatar                                                      |
 | M2.8 Items and behaviours ✅        | templates with wear, hold, sit, throw, play, open screen (drive comes with races in M3.2); inventory                                      | items work in spaces and the plaza without new code per item                                              |
 | M2.9 Material library and styles ✅ | TSL materials (PBR, toon, glass, water, emissive, hologram) with tier fallbacks; every style topic                                        | the plan's style mixer works on real places                                                               |
 | M2.10 Creator studio ✅             | the draft corridor, background generation, steering by talking; keep, save or submit                                                      | an idea becomes a kept draft in a private space                                                           |
-| M2.11 MCP door ✅                   | MCP server generated from the registry, with OAuth; internal only                                                                         | an outside agent builds a room using only the MCP server                                                  |
+| M2.11 MCP door ✅                   | MCP server generated from the registry, with OAuth; on by default, as the way AI builds                                                   | an outside agent builds a room using only the MCP server                                                  |
 
 **Gate 2 — A new player builds a room without help.** Proposed bar: at least 8 of 10 first-time testers build and share a room unaided.
 
@@ -199,5 +199,5 @@ The open ones have defaults and can wait until the milestone that needs them.
 | Hosting for staging               | decided                          | Render free tier for the server and client; Cloudflare Pages optional for the client (ADR-005) |
 | Audience age                      | M2.1                             | safe defaults that work for either answer                                                      |
 | 3D generation provider            | M2.7                             | hosted API behind an adapter, compared on a test set                                           |
-| SDK openness                      | M2.11                            | our own agent first; MCP door internal                                                         |
+| SDK openness                      | M2.11                            | decided: no AI of our own; the MCP door is open to players\' own agents (ADR-013)              |
 | Business model, team and timeline | Phase 4; team now, for estimates | not blocking                                                                                   |

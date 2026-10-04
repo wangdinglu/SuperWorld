@@ -23,8 +23,6 @@ import {
 } from "@superworld/core";
 import {
   AdmitMessage,
-  AgentMessage,
-  type AgentReplyMessage,
   AvatarMessage,
   ChatMessage,
   EditMessage,
@@ -62,7 +60,6 @@ import {
   type Place,
   touchUser,
 } from "@superworld/db";
-import type { BuildingAgent } from "../agent.ts";
 import type { EditorEvent, SpaceEditor, SpaceEditors } from "../editors.ts";
 import type { Knocks } from "../knocks.ts";
 import { type Identity, verifyToken } from "../tokens.ts";
@@ -76,8 +73,8 @@ export interface PlaceRoomOptions {
   knocks: Knocks;
   /** Live space rooms by place id, so API changes (visibility) reach the room. */
   liveRooms: Map<string, PlaceRoom>;
-  /** The AI building agent, when the server has one configured. */
-  agent?: BuildingAgent;
+  /** The MCP door's URL, shown to owners so they can connect their own AI. */
+  mcpUrl?: string;
   kind: "plaza" | "space";
   /** The plaza's place id (from the world manifest), or the space id from the joining client. */
   placeId?: string;
@@ -426,29 +423,6 @@ export class PlaceRoom extends Room<{
         await this.editor!.save(client.auth.userId);
       }),
     );
-    this.onMessage("agent", (client, message: unknown) =>
-      ownerOnly(client, async () => {
-        const parsed = AgentMessage.safeParse(message);
-        if (!parsed.success) return;
-        const agent = this.options.agent;
-        if (!agent) {
-          const reply: AgentReplyMessage = {
-            text: "",
-            steps: [],
-            error: "The AI builder isn't set up on this server.",
-          };
-          return void client.send("agent-reply", reply);
-        }
-        const identity = client.auth as Identity;
-        const reply = await agent.run(
-          this.editor!,
-          { id: identity.userId, kind: identity.kind },
-          parsed.data.text,
-          (p) => client.send("agent-progress", p),
-        );
-        client.send("agent-reply", reply);
-      }),
-    );
     this.onMessage("admit", (client, message: unknown) =>
       ownerOnly(client, () => {
         const parsed = AdmitMessage.safeParse(message);
@@ -475,7 +449,7 @@ export class PlaceRoom extends Room<{
       visibility: this.place?.visibility ?? "public",
       scene: this.scene,
       draftSteps: this.editor?.draftSteps ?? [],
-      agentAvailable: Boolean(this.options.agent),
+      mcpUrl: this.options.mcpUrl ?? null,
       stage: this.place?.stage ?? "kept",
       submitted: Boolean(this.place?.submittedAt),
     };

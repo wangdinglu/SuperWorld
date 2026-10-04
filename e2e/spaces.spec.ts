@@ -23,6 +23,11 @@ test("a player makes a space, builds in it, and a friend visits", async ({ brows
   await owner.getByRole("button", { name: "Save" }).click();
   await expect(owner.locator(".build")).toContainText("All changes saved");
 
+  // Building with your own AI: the tab shows where to connect it.
+  await owner.getByRole("tab", { name: /Your AI/ }).click();
+  await expect(owner.locator(".connect-ai")).toContainText("/mcp");
+  await expect(owner.locator(".connect-ai")).toContainText("claude mcp add --transport http");
+  await owner.screenshot({ path: "test-results/your-ai-tab.png" });
   await owner.getByRole("tab", { name: "Settings" }).click();
   await owner.getByRole("button", { name: "Make public" }).click();
   await expect(owner.locator(".build")).toContainText("Visibility: public");

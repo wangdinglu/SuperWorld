@@ -1,6 +1,6 @@
 # ADR-012: The MCP door
 
-**Status:** Accepted · 4 Oct 2026
+**Status:** Accepted · 4 Oct 2026 · amended by ADR-013 (no server-side agent; drafts are sketched and rebuilt by players' own agents; the MCP door is on by default)
 
 **Context.** M2.11 asks for an MCP server generated from the SDK registry, with OAuth, internal only. Done when an outside agent builds a room using only the MCP server. The SDK (ADR-003, M2.4) already has a door-independent tool registry with budgets, and an `mcp` actor in the revision log.
 

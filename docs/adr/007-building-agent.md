@@ -1,6 +1,6 @@
 # ADR-007: The building agent
 
-**Status:** Accepted · 4 Oct 2026
+**Status:** Superseded by ADR-013 · 4 Oct 2026
 
 **Context.** Gate 2 asks that a new player can build a room without help. The Creator SDK (ADR-003, M2.4) already validates every edit, so an agent can be given the same tools the build panel uses.
 

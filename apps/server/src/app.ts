@@ -17,12 +17,11 @@ import { z } from "zod";
 import type { Content } from "./content.ts";
 import type { Mailer } from "./mailer.ts";
 import { maskText, RateLimiter } from "./moderation.ts";
-import type { BuildingAgent } from "./agent.ts";
 import { SpaceEditors } from "./editors.ts";
 import { Knocks } from "./knocks.ts";
 import { PlaceRoom } from "./rooms/PlaceRoom.ts";
 import { registerSpaceRoutes } from "./spaces.ts";
-import { registerStudioRoutes } from "./studio.ts";
+import { registerStudioRoutes, Studio } from "./studio.ts";
 import { registerMcpDoor } from "./mcp.ts";
 import { bearer, issueToken, verifyToken } from "./tokens.ts";
 
@@ -33,9 +32,7 @@ export interface Services {
   content: Content;
   db: Db;
   mailer: Mailer;
-  /** The AI building agent; absent when not configured. */
-  agent?: BuildingAgent;
-  /** The MCP door for outside agents (internal for now; off unless configured). */
+  /** The MCP door, where players' own AI agents build (the server calls no language model). */
   mcp?: { issuerUrl: string; consentUrl: string };
 }
 
@@ -64,7 +61,8 @@ function session(user: User) {
 }
 
 export function createServer(services: Services) {
-  const { content, db, mailer, agent, mcp } = services;
+  const { content, db, mailer, mcp } = services;
+  const mcpUrl = mcp ? new URL("/mcp", mcp.issuerUrl).toString() : undefined;
   const templates = new Map(content.templates.templates.map((t) => [t.id, t]));
   const editors = new SpaceEditors(db, templates);
   const knocks = new Knocks();
@@ -104,7 +102,7 @@ export function createServer(services: Services) {
         editors,
         knocks,
         liveRooms,
-        ...(agent ? { agent } : {}),
+        ...(mcpUrl ? { mcpUrl } : {}),
         kind: "space",
       }).filterBy(["placeId"]),
     },
@@ -211,23 +209,19 @@ export function createServer(services: Services) {
       });
 
       registerSpaceRoutes(app, { db, editors, knocks, liveRooms, requireUser });
+      const studio = new Studio({ db, editors, liveRooms });
       if (mcp) {
         registerMcpDoor(app, {
           db,
           editors,
+          studio,
           getUser: (id) => getUser(db, id),
           requireUser,
           issuerUrl: mcp.issuerUrl,
           consentUrl: mcp.consentUrl,
         });
       }
-      registerStudioRoutes(app, {
-        db,
-        editors,
-        liveRooms,
-        requireUser,
-        ...(agent ? { agent } : {}),
-      });
+      registerStudioRoutes(app, studio, { db, editors, liveRooms, requireUser });
 
       /** World manifest, so the client can list places. */
       app.get("/api/world", (_req, res) => {

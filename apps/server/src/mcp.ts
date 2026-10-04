@@ -26,6 +26,7 @@ import { z } from "zod";
 import type { SpaceEditors } from "./editors.ts";
 import { maskText } from "./moderation.ts";
 import { newSpaceId, SPACE_LIMIT, starterScene } from "./spaces.ts";
+import { type Studio, StudioError, VARIANTS } from "./studio.ts";
 
 const SCOPE = "spaces";
 const PENDING_MS = 10 * 60_000;
@@ -207,8 +208,25 @@ const fail = (message: string): ToolResult => ({ ...ok(message), isError: true }
 export interface McpDeps {
   db: Db;
   editors: SpaceEditors;
+  studio: Studio;
   getUser(id: string): Promise<User | undefined>;
 }
+
+/** Sent to every connected agent: how SuperWorld spaces work and how to build them well. */
+export const BUILDER_INSTRUCTIONS = `You are building in SuperWorld, a shared 3D world, for the player who connected you. Each tool call is one step that anyone inside the space watches happen live; nothing is published until you call space_save, and space_undo takes back the last unsaved step.
+
+How spaces work:
+- The ground is a flat disc centred on (0, 0). Positions are x and z in metres; keep everything inside the ground radius (leave about a metre at the edge). Visitors arrive at the spawn point; keep a clear path around it.
+- Objects come from a library of templates (library_list_templates gives ids, and what players can do with each). Rotation is in degrees; 0 faces +z. Scale changes size (0.25 to 4).
+- Some objects do things for visitors: benches to sit on, stands that hand out balls, hats or lanterns, instruments to play, notice boards to read (write their text with scene_set_text). A space feels alive with a few of these.
+- Style topics (form, surface, colour palette, light, atmosphere, screen effects) change the whole space's look.
+- There are limits on object count and detail. If a tool returns an error, read it and adjust rather than repeating the same call.
+
+How to work:
+- Lay things out with intent: groups, paths, symmetry or deliberate clusters, and spacing so objects don't overlap (benches ~2 m wide, trees ~3.5 m, fountains ~10 m).
+- Check scene_list_objects before moving or removing things you didn't place yourself.
+- For a new idea, studio_make_drafts gives three quick sketches (cosy, grand, playful); rebuild each to match the idea with the scene tools, save them, and let the player walk through and keep one (studio_keep_draft).
+- Save when a step of work is done, and tell the player what you built.`;
 
 /**
  * The MCP server for one request, generated from the Creator SDK registry: every SDK tool takes
@@ -216,7 +234,10 @@ export interface McpDeps {
  * and save spaces. Edits show live to anyone inside, exactly like the build panel's.
  */
 export function buildMcpServer(deps: McpDeps, userId: string): McpServer {
-  const server = new McpServer({ name: "superworld", version: "1.0.0" });
+  const server = new McpServer(
+    { name: "superworld", version: "1.0.0" },
+    { instructions: BUILDER_INSTRUCTIONS },
+  );
 
   async function owned(spaceId: string) {
     const place = await getPlace(deps.db, spaceId);
@@ -228,18 +249,63 @@ export function buildMcpServer(deps: McpDeps, userId: string): McpServer {
     "spaces_list",
     {
       description:
-        "List your SuperWorld spaces (id, name, visibility). Pass a space id to the other tools.",
+        "List your SuperWorld spaces (id, name, visibility) and any creator studio drafts. Pass a space id to the other tools.",
       inputSchema: z.strictObject({}),
       annotations: { readOnlyHint: true },
     },
-    async () =>
-      ok(
-        (await listSpaces(deps.db, userId)).map((s) => ({
+    async () => {
+      const studio = await deps.studio.list(userId);
+      return ok({
+        spaces: (await listSpaces(deps.db, userId)).map((s) => ({
           id: s.id,
           name: s.name,
           visibility: s.visibility,
         })),
-      ),
+        ...(studio.drafts.length > 0 ? { studioIdea: studio.idea, drafts: studio.drafts } : {}),
+      });
+    },
+  );
+
+  const studioCall = async (run: (user: User) => Promise<unknown>): Promise<ToolResult> => {
+    const user = await deps.getUser(userId);
+    if (!user) return fail("Your account no longer exists.");
+    try {
+      return ok(await run(user));
+    } catch (err) {
+      if (err instanceof StudioError) return fail(err.message);
+      throw err;
+    }
+  };
+
+  server.registerTool(
+    "studio_make_drafts",
+    {
+      description: `Start the creator studio on an idea: makes three draft spaces with quick sketches, one per direction (${VARIANTS.map((v) => `${v.label}: ${v.brief}`).join(" ")}). Replaces any earlier drafts. Then rebuild each draft to fit the idea and save it.`,
+      inputSchema: z.strictObject({ idea: z.string().min(3).max(300) }),
+    },
+    async ({ idea }) =>
+      studioCall(async (user) => {
+        const made = await deps.studio.make(user, idea);
+        await made.ready;
+        return {
+          idea: made.idea,
+          drafts: made.drafts.map((d, i) => ({
+            space: d.id,
+            name: d.name,
+            direction: VARIANTS[i]!.brief,
+          })),
+        };
+      }),
+  );
+
+  server.registerTool(
+    "studio_keep_draft",
+    {
+      description:
+        "Keep one studio draft: it becomes one of the player's spaces (unsaved edits are saved) and the other drafts are deleted. Usually the player chooses; only call this when they've said which.",
+      inputSchema: z.strictObject({ space: SpaceId, name: z.string().min(1).max(40).optional() }),
+    },
+    async ({ space, name }) => studioCall((user) => deps.studio.keep(user, space, name)),
   );
 
   server.registerTool(

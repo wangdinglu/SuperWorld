@@ -162,6 +162,49 @@ describe("MCP door", () => {
     await client.close();
   });
 
+  it("tells agents how to build, and runs the creator studio for them", async () => {
+    const player = await guestToken("Studio Agent");
+    const { provider, state } = clientAuth();
+    const url = new URL(`${base}/mcp`);
+    const client = new Client({ name: "test-builder", version: "1.0.0" });
+    await expect(
+      client.connect(new StreamableHTTPClientTransport(url, { authProvider: provider })),
+    ).rejects.toThrow(UnauthorizedError);
+    const back = await consent(state.authorizeUrl, player, true);
+    const transport = new StreamableHTTPClientTransport(url, { authProvider: provider });
+    await transport.finishAuth(back.searchParams.get("code")!);
+    await client.connect(transport);
+    expect(client.getInstructions()).toContain("space_save");
+
+    const text = (r: any) => JSON.parse(r.content[0].text);
+    const made = text(
+      await client.callTool({ name: "studio_make_drafts", arguments: { idea: "a moonlit pond" } }),
+    );
+    expect(made.drafts).toHaveLength(3);
+    const [a, b] = made.drafts as { space: string; direction: string }[];
+    expect(b!.direction).toMatch(/grand/);
+    // The agent rebuilds a draft, then the player's choice is kept.
+    await client.callTool({
+      name: "scene_place_object",
+      arguments: { space: a!.space, template: "prim/pond", x: 3, z: 3 },
+    });
+    const listed = text(await client.callTool({ name: "spaces_list", arguments: {} }));
+    expect(listed.drafts).toHaveLength(3);
+    const kept = text(
+      await client.callTool({
+        name: "studio_keep_draft",
+        arguments: { space: a!.space, name: "Moon Pond" },
+      }),
+    );
+    expect(kept).toEqual({ id: a!.space, name: "Moon Pond" });
+    const after = text(await client.callTool({ name: "spaces_list", arguments: {} }));
+    expect(after.spaces.map((s: any) => s.name)).toEqual(["Moon Pond"]);
+    expect(after.drafts).toBeUndefined();
+    const scene = await getPublishedScene(database.db, a!.space);
+    expect(scene?.instances.filter((i) => i.template === "prim/pond").length).toBeGreaterThan(0);
+    await client.close();
+  });
+
   it("sends the client back with access_denied when the player says no", async () => {
     const player = await guestToken("Careful");
     const { provider, state } = clientAuth();

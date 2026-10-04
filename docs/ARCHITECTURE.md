@@ -85,8 +85,7 @@ flowchart TB
   end
   subgraph Services
     API["API<br/>accounts, places, assets,<br/>Creator SDK"]
-    AGT["Agent service<br/>Claude tool use"]
-    MCP["MCP server"]
+    MCP["MCP server<br/>players' own AI agents"]
     CLI["CLI"]
     WRK["Workers<br/>optimise, bake, generate, moderate"]
   end
@@ -101,7 +100,6 @@ flowchart TB
   WEB -- HTTPS --> CDN
   WEB -. iframe .-> UC
   NAT -.-> GS
-  AGT --> API
   MCP --> API
   CLI --> API
   GS --> API
@@ -114,16 +112,15 @@ flowchart TB
   CDN -- origin --> OBJ
 ```
 
-| Component     | Job                                                                   | Built with                                                            | From    |
-| ------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------- | ------- |
-| Web client    | Draw the world, camera, input, HUD; predict your own movement         | Vite, three.js (WebGPU with WebGL2 fallback), Preact, `@colyseus/sdk` | Phase 1 |
-| Game server   | Run authoritative rooms on the shared core                            | Node 22, Colyseus 0.18, Rapier                                        | Phase 1 |
-| API           | Accounts, places and revisions, inventory, assets; Creator SDK door 1 | Hono, Drizzle, Postgres                                               | Phase 2 |
-| Workers       | Optimise and bake assets; run generation and moderation jobs          | BullMQ on Redis, glTF-Transform, headless Chromium                    | Phase 2 |
-| Agent service | Building agent and AI hosts                                           | Claude Messages API with tool use                                     | Phase 2 |
-| MCP server    | Creator SDK door 2, for outside agents                                | MCP TypeScript SDK                                                    | Phase 2 |
-| CLI           | Creator SDK door 3, for scripts and CI                                | generated from the SDK                                                | Phase 3 |
-| Voice         | Proximity voice                                                       | LiveKit                                                               | Phase 4 |
+| Component   | Job                                                                   | Built with                                                            | From    |
+| ----------- | --------------------------------------------------------------------- | --------------------------------------------------------------------- | ------- |
+| Web client  | Draw the world, camera, input, HUD; predict your own movement         | Vite, three.js (WebGPU with WebGL2 fallback), Preact, `@colyseus/sdk` | Phase 1 |
+| Game server | Run authoritative rooms on the shared core                            | Node 22, Colyseus 0.18, Rapier                                        | Phase 1 |
+| API         | Accounts, places and revisions, inventory, assets; Creator SDK door 1 | Hono, Drizzle, Postgres                                               | Phase 2 |
+| Workers     | Optimise and bake assets; run generation and moderation jobs          | BullMQ on Redis, glTF-Transform, headless Chromium                    | Phase 2 |
+| MCP server  | The AI door: players connect their own agents (no LLM on our servers) | MCP TypeScript SDK                                                    | Phase 2 |
+| CLI         | Creator SDK door 3, for scripts and CI                                | generated from the SDK                                                | Phase 3 |
+| Voice       | Proximity voice                                                       | LiveKit                                                               | Phase 4 |
 
 Phase 1 needs no database. Guests get signed tokens, the plaza scene ships in the repo, and chat is not stored. The first playable build is two things: a static client and one game server.
 
@@ -134,7 +131,6 @@ apps/
   web/        browser client: boot, HUD, input, net, camera
   server/     game server: Colyseus rooms, travel and guest-token routes
   api/        HTTP API and Creator SDK door 1            (Phase 2)
-  agent/      building agent and AI hosts                (Phase 2)
   workers/    asset, bake, generation, moderation jobs   (Phase 2)
   mcp/        MCP server, Creator SDK door 2             (Phase 2)
   cli/        CLI, Creator SDK door 3                    (Phase 3)
@@ -163,7 +159,7 @@ Dependency rules, checked in CI with dependency-cruiser:
 
 ## 5. Content formats
 
-All formats are defined once with **Zod 4** in `packages/schema`. One definition gives us TypeScript types, runtime validation, and JSON Schema, which the MCP server and Claude tool definitions need.
+All formats are defined once with **Zod 4** in `packages/schema`. One definition gives us TypeScript types, runtime validation, and JSON Schema, which the MCP server's tool definitions need.
 
 | Document       | Holds                                                                                                          | Notes                        |
 | -------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------- |
@@ -202,7 +198,7 @@ Rules:
 - The server never opens meshes. The asset pipeline writes each template's collider (boxes, capsules, convex hulls; full meshes only for static ground) into the template, so rooms load only small JSON.
 - Places the team builds (plaza, districts) live in `content/` and change through pull requests with CI validation. Player spaces live in the database.
 
-**Every edit is a patch.** Players, the agent, the MCP server and the CLI all edit the same way: a list of JSON Patch operations (RFC 6902) against a scene. The engine checks the result (schema, budgets, permissions, review status of the assets it references) before applying it. One edit path gives us undo and redo, a draft layer for previews, an audit log of who changed what, live updates (rooms broadcast patches instead of reloading), and the history the museum needs to "rewind its making".
+**Every edit is a patch.** Players, the MCP server (players' own agents) and the CLI all edit the same way: a list of JSON Patch operations (RFC 6902) against a scene. The engine checks the result (schema, budgets, permissions, review status of the assets it references) before applying it. One edit path gives us undo and redo, a draft layer for previews, an audit log of who changed what, live updates (rooms broadcast patches instead of reloading), and the history the museum needs to "rewind its making".
 
 ## 6. Shared simulation core (`packages/core`)
 
@@ -259,7 +255,7 @@ sequenceDiagram
 | Scene builder | Scene document + resolved style → three.js scene: instancing for repeated templates, LODs, impostors for far avatars.            |
 | Camera        | One rig with a continuous height: walk → overview → atlas (§9).                                                                  |
 | Input         | Keyboard/mouse and touch adapters produce one input frame: direction or target, look, actions.                                   |
-| HUD           | Preact with signals, as a DOM layer: chat, emotes, menus, atlas, agent panel.                                                    |
+| HUD           | Preact with signals, as a DOM layer: chat, emotes, menus, atlas, build panel.                                                    |
 | Audio         | WebAudio with positional sources.                                                                                                |
 | Network       | `@colyseus/sdk` with typed state and `Predict`.                                                                                  |
 | Install       | Web app manifest and service worker, so phones can add SuperWorld to the home screen.                                            |
@@ -354,11 +350,11 @@ flowchart LR
 
 ## 12. Creator SDK and agents
 
-One tool registry, four doors. Each tool is defined once:
+One tool registry, three doors. SuperWorld runs no language model itself (ADR-013): AI building comes from players' own agents through the MCP door. Each tool is defined once:
 
 ```ts
 defineTool({
-  name: "scene_place_object", // snake_case works for Claude, MCP and CLI
+  name: "scene_place_object", // snake_case works for MCP clients and the CLI
   module: "scene",
   description: "Place a library or inventory object in the space being edited.",
   input: z.object({ template: TemplateRef, at: Vec3, yaw: z.number().optional() }),
@@ -369,12 +365,11 @@ defineTool({
 
 …and generated into:
 
-| Door          | Form                                                  | Phase |
-| ------------- | ----------------------------------------------------- | ----- |
-| API           | `POST /v1/sdk/scene_place_object`                     | 2     |
-| In-game agent | Claude tool definition (JSON Schema from Zod, strict) | 2     |
-| MCP           | MCP tool, for players' own AI and other apps          | 2     |
-| CLI           | `superworld scene place-object …`                     | 3     |
+| Door | Form                                         | Phase |
+| ---- | -------------------------------------------- | ----- |
+| API  | `POST /v1/sdk/scene_place_object`            | 2     |
+| MCP  | MCP tool, for players' own AI and other apps | 2     |
+| CLI  | `superworld scene place-object …`            | 3     |
 
 Every call, from any door, runs the same checks: sign-in → permission → schema → run → budget check on the patched scene → review status of referenced assets → apply to the draft → broadcast a preview.
 
@@ -388,38 +383,15 @@ Every call, from any door, runs the same checks: sign-in → permission → sche
 | media      | screens, music, video (Phase 3)                          | sandboxed pages, moderation                            |
 | shaders    | a node graph from approved nodes (Phase 3)               | cost budget, flashing limit, required fallback         |
 
-**Agent service**
+**AI building: bring your own agent**
 
-- A Claude Messages API tool-use loop over the registry's tools. The agent acts as the player, with the player's permissions and nothing more.
-- **Model:** the current Opus-tier Claude model by default, with effort set per task: low for small edits, higher for planning a whole room. The plan's "smaller model for routine edits" lever (Sonnet or Haiku tier) is measured with an eval against Opus at low effort before we split traffic, because prompt caches are per model.
-- **Caching:** tools are sent in a fixed, sorted order and the system prompt is stable, so each turn re-reads the long prefix at cache prices.
-- **Tools** use automatic tool choice with strict schemas, so arguments always validate.
-- **Long jobs** such as mesh generation return a job ID. A placeholder appears in the space and is swapped when the job finishes.
-- **Every step is previewed**, and the player accepts or undoes it. Budget errors and refusals go back to the model as tool results so it can correct itself.
-- **Limits:** daily quotas per player; token and generation spend logged per session for the cost dashboards; conversations kept for safety review (how long depends on the audience-age decision).
-- **AI hosts** (curator, marshal, librarian) run in the same service with mostly read-only tools. Offline work such as exhibit descriptions and re-moderation sweeps goes through the Batch API at half price.
-- **Rough cost:** a 15-step building session is mostly output tokens (about 20–25k) plus cached context, which comes to well under $1 at today's Opus-tier list prices. M2.6 measures the real number before quotas are set.
+- The servers call no language model and hold no model keys. Players connect any MCP-speaking agent (Claude Code, Claude Desktop and others) to the MCP door; it acts as the player, with the player's permissions and nothing more.
+- The door sends building guidance as MCP server instructions, and every SDK tool with a `space` argument, plus space and creator studio tools.
+- **Every step is live and undoable**: edits land on the space's shared draft, everyone inside watches, and nothing is published until the agent or player saves. Budget errors go back to the agent as tool errors so it can correct itself.
+- Model choice, prompts, cost and quotas belong to the player's own agent. Our cost ledger covers rooms, storage and bandwidth only.
+- AI hosts (curator, marshal, librarian) in later phases follow the same rule: either players' agents or precomputed content, never a model call from our servers. This is revisited only with a new decision record.
 
-```mermaid
-sequenceDiagram
-  participant U as Player
-  participant A as Agent service
-  participant L as Claude
-  participant K as Creator SDK
-  participant R as Space room
-  U->>A: a library under the sea
-  A->>L: conversation and SDK tools, cached
-  L-->>A: tool call: scene_place_object
-  A->>K: call the tool as the player
-  K->>K: schema, budgets, review status, then a patch
-  K->>R: apply to the draft
-  R-->>U: live preview
-  K-->>A: tool result: ok or budget error
-  A-->>U: summary with Accept and Undo
-  U->>K: accept: new revision
-```
-
-**MCP and CLI.** The MCP server uses Streamable HTTP with OAuth and stays internal until the SDK-openness decision. The CLI (Phase 3) covers bulk imports, batch edits and automated tests.
+**MCP and CLI.** The MCP server uses Streamable HTTP with OAuth (the player approves each app in the game) and is on by default. The CLI (Phase 3) covers bulk imports, batch edits and automated tests.
 
 ## 13. Sandboxed scripts and shaders (Phase 3)
 
@@ -439,7 +411,7 @@ sequenceDiagram
 - **Postgres (Phase 2):** users, identities, profiles, avatars, assets, templates, places, place revisions, inventory, friendships, reports, moderation items, generation jobs, usage ledger.
 - **Redis:** presence (who is where), the matchmaking driver, rate limits, job queues, leaderboards.
 - **Object storage behind a CDN:** hash-addressed, immutable assets with long cache lifetimes.
-- **Privacy:** account deletion and data export from the first account release; retention periods for chat and agent logs are set with the audience-age decision.
+- **Privacy:** account deletion and data export from the first account release; retention periods for chat and edit logs are set with the audience-age decision.
 
 ## 16. Safety and moderation
 
@@ -460,7 +432,7 @@ sequenceDiagram
 
 - Structured JSON logs, OpenTelemetry metrics and traces, error tracking.
 - Sampled client telemetry: frame rate, tier, device, round-trip time.
-- A **cost ledger** per player per day: LLM tokens, generation jobs, bandwidth, room CPU time. It feeds the Phase 4 gate ("cost per player within budget").
+- A **cost ledger** per player per day: generation jobs, storage, bandwidth, room CPU time (no LLM tokens: players bring their own agents). It feeds the Phase 4 gate ("cost per player within budget").
 
 ## 18. Environments
 
@@ -492,7 +464,6 @@ Versions are what npm reports on 3 Oct 2026; the lockfile pins exact versions wh
 | Asset tools       | glTF-Transform, KTX2, meshopt                                 | 4.5             |                                                                                      |
 | API and database  | Hono, Postgres, Drizzle ORM                                   | 4 / – / 0.45    | Colyseus' database package also uses Drizzle                                         |
 | Jobs              | BullMQ on Redis                                               | 6               |                                                                                      |
-| Agent             | Anthropic TypeScript SDK                                      | current         | Claude tool use                                                                      |
 | MCP               | `@modelcontextprotocol/sdk`                                   | 1.32            |                                                                                      |
 | Script sandbox    | quickjs-emscripten                                            | 0.32            | Phase 3                                                                              |
 | Voice             | LiveKit                                                       | –               | Phase 4                                                                              |

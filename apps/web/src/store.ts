@@ -56,7 +56,8 @@ export interface CurrentPlace {
   visibility: "public" | "friends" | "private";
   isOwner: boolean;
   draftSteps: string[];
-  agentAvailable: boolean;
+  /** Where the player's own AI connects (the MCP door), or null when it's off. */
+  mcpUrl: string | null;
   /** A creator studio draft until the owner keeps it. */
   stage: "draft" | "kept";
   submitted: boolean;
@@ -77,12 +78,6 @@ export const knocks = signal<{ userId: string; name: string }[]>([]);
 
 /** The last Creator SDK result, for the build panel. */
 export const editResult = signal<{ ok: boolean; text: string } | null>(null);
-
-/** The conversation with the building agent in the current space. */
-export const agentLog = signal<
-  { id: number; from: "you" | "ai"; text: string; steps?: string[]; error?: boolean }[]
->([]);
-export const agentBusy = signal<{ state: "thinking" | "working"; step?: string } | null>(null);
 
 /** The nearest thing I can use (E, or the use button). */
 export const interaction = signal<{ label: string; kind: string } | null>(null);

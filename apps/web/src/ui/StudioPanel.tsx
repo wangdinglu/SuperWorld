@@ -1,7 +1,8 @@
 import { useEffect, useState } from "preact/hooks";
 import { account, api } from "../account.ts";
 import type { Game } from "../game.ts";
-import { agentBusy, agentLog, place } from "../store.ts";
+import { place } from "../store.ts";
+import { ConnectAi } from "./ConnectAi.tsx";
 
 interface Draft {
   id: string;
@@ -11,7 +12,6 @@ interface Draft {
   buildNote: string | null;
 }
 interface Studio {
-  agentAvailable: boolean;
   idea: string | null;
   drafts: Draft[];
 }
@@ -70,9 +70,8 @@ export function StudioPanel(props: { game: Game; onClose(): void }) {
         </button>
       </div>
       <p class="muted-text small">
-        {studio?.agentAvailable
-          ? "Describe an idea. The AI builds three different takes while you walk through them."
-          : "Describe an idea. You get three quick sketches of it to walk through (the AI builder isn't set up on this server)."}
+        Describe an idea and get three quick sketches of it (cosy, grand, playful) to walk through.
+        Ask your own AI to rebuild them: it can also start the studio for you.
       </p>
       <form
         class="stack"
@@ -138,23 +137,21 @@ export function StudioPanel(props: { game: Game; onClose(): void }) {
         </>
       )}
       {error && <p class="error">{error}</p>}
+      <ConnectAi compact />
     </div>
   );
 }
 
 /**
- * Shown inside a draft: step along the corridor of drafts, steer this one by talking to the AI,
- * and keep it when it's right.
+ * Shown inside a draft: step along the corridor of drafts, and keep the one that's right.
  */
 export function DraftCorridor(props: { game: Game; onOpenStudio(): void }) {
   const [studio] = useStudio();
-  const [text, setText] = useState("");
   const [error, setError] = useState("");
   const p = place.value!;
   const drafts = studio?.drafts ?? [];
   const index = drafts.findIndex((d) => d.id === p.id);
   const here = drafts[index];
-  const last = agentLog.value.at(-1);
   const go = (offset: number) => {
     const next = drafts[(index + offset + drafts.length) % drafts.length];
     if (next) void props.game.goToSpace(next.id);
@@ -174,32 +171,10 @@ export function DraftCorridor(props: { game: Game; onOpenStudio(): void }) {
           ›
         </button>
       </div>
-      {p.agentAvailable && (
-        <form
-          class="row"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!text.trim() || agentBusy.value) return;
-            props.game.askAgent(text.trim());
-            setText("");
-          }}
-        >
-          <input
-            value={text}
-            maxLength={1000}
-            placeholder="Steer it: “warmer”, “add a pond”…"
-            onInput={(e) => setText((e.target as HTMLInputElement).value)}
-          />
-          <button class="secondary" type="submit" disabled={Boolean(agentBusy.value)}>
-            Tell
-          </button>
-        </form>
-      )}
-      {agentBusy.value ? (
-        <p class="muted-text small">The AI is working…</p>
-      ) : (
-        last?.from === "ai" && <p class="muted-text small">{last.text}</p>
-      )}
+      <p class="muted-text small">
+        Ask your AI to rebuild this draft (it sees it as one of your spaces), then keep the one you
+        like.
+      </p>
       <div class="row">
         <button
           class="primary"

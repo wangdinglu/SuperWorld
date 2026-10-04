@@ -17,13 +17,12 @@ import {
 } from "@superworld/db";
 import type { Application, Request, Response } from "express";
 import { z } from "zod";
-import type { BuildingAgent } from "./agent.ts";
 import type { SpaceEditor, SpaceEditors } from "./editors.ts";
 import { maskText } from "./moderation.ts";
 import type { PlaceRoom } from "./rooms/PlaceRoom.ts";
 import { newSpaceId, SPACE_LIMIT, starterScene } from "./spaces.ts";
 
-/** Three takes on every idea, each with its own direction. */
+/** Three takes on every idea, each with its own direction (also given to outside agents). */
 export const VARIANTS = [
   { label: "A", brief: "Make it cosy and close: a small, warm, sheltered layout." },
   { label: "B", brief: "Make it open and grand: wide spacing, a clear centrepiece and symmetry." },
@@ -139,11 +138,27 @@ export interface StudioDeps {
   db: Db;
   editors: SpaceEditors;
   liveRooms: Map<string, PlaceRoom>;
-  agent?: BuildingAgent;
-  requireUser(req: Request, res: Response): Promise<User | undefined>;
 }
 
-const draftView = (p: Place) => ({
+/** A studio request that can't be done, with the HTTP status that says why. */
+export class StudioError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+export interface DraftView {
+  id: string;
+  name: string;
+  variant: string;
+  buildState: Place["buildState"];
+  buildNote: string | null;
+}
+
+const draftView = (p: Place): DraftView => ({
   id: p.id,
   name: p.name,
   variant: p.name.slice(-1),
@@ -152,36 +167,24 @@ const draftView = (p: Place) => ({
 });
 
 /**
- * The creator studio: an idea becomes three draft spaces built in the background, which the
- * owner walks through, steers by talking, and then keeps (one), saves and submits.
+ * The creator studio: an idea becomes three draft spaces, sketched in the background, which the
+ * owner walks through, rebuilds with their own AI (through the MCP door), and keeps one of.
+ * The server itself calls no language model. Used by the HTTP routes and the MCP tools alike.
  */
-export function registerStudioRoutes(app: Application, deps: StudioDeps): void {
-  const { db, editors, liveRooms, agent, requireUser } = deps;
-  const running = new Set<string>();
+export class Studio {
+  private readonly running = new Set<string>();
 
-  async function build(user: User, draft: Place, idea: string, variant: number): Promise<void> {
+  constructor(private readonly deps: StudioDeps) {}
+
+  private async sketchDraft(user: User, draft: Place, idea: string, variant: number) {
+    const { db, editors } = this.deps;
     const editor = await editors.get(draft.id);
     if (!editor) return;
-    let note: string | null = null;
     try {
-      if (agent) {
-        const reply = await agent.run(
-          editor,
-          { id: user.id, kind: user.kind },
-          `${idea}\n\n${VARIANTS[variant]!.brief} Start from an empty space: clear what's there first.`,
-          () => {},
-        );
-        if (reply.error) {
-          // Out of quota or the service failed: sketch it instead, and say so.
-          note = `Sketched without the AI: ${reply.error}`;
-          sketch(editor, idea, variant);
-        }
-      } else {
-        sketch(editor, idea, variant);
-      }
+      sketch(editor, idea, variant);
       if (!(await getPlace(db, draft.id))) return; // discarded while building
       await editor.save(user.id);
-      await setBuildState(db, draft.id, "ready", note);
+      await setBuildState(db, draft.id, "ready");
     } catch (err) {
       console.error(JSON.stringify({ event: "studio-error", place: draft.id, error: String(err) }));
       if (await getPlace(db, draft.id))
@@ -189,37 +192,26 @@ export function registerStudioRoutes(app: Application, deps: StudioDeps): void {
     }
   }
 
-  async function removeDrafts(drafts: Place[]): Promise<void> {
-    await deletePlaces(
-      db,
-      drafts.map((d) => d.id),
-    );
-    for (const d of drafts) agent?.forget(d.id);
+  async list(userId: string): Promise<{ idea: string | null; drafts: DraftView[] }> {
+    await expireDrafts(this.deps.db, new Date(Date.now() - DRAFT_HOURS * 3600_000));
+    const drafts = await listDrafts(this.deps.db, userId);
+    return { idea: drafts[0]?.idea ?? null, drafts: drafts.map(draftView) };
   }
 
-  app.get("/api/studio", async (req, res) => {
-    const user = await requireUser(req, res);
-    if (!user) return;
-    await expireDrafts(db, new Date(Date.now() - DRAFT_HOURS * 3600_000));
-    const drafts = await listDrafts(db, user.id);
-    res.json({
-      agentAvailable: Boolean(agent),
-      idea: drafts[0]?.idea ?? null,
-      drafts: drafts.map(draftView),
-    });
-  });
-
-  app.post("/api/studio/drafts", async (req, res) => {
-    const user = await requireUser(req, res);
-    if (!user) return;
-    const parsed = Idea.safeParse(req.body);
-    if (!parsed.success)
-      return void res.status(400).json({ error: "Describe your idea in 3–300 characters" });
-    if (running.has(user.id))
-      return void res.status(429).json({ error: "Your drafts are still being built" });
+  /**
+   * Starts three drafts of an idea, replacing any old ones. Returns at once with the drafts
+   * (still building) and a promise that settles when all three are sketched.
+   */
+  async make(
+    user: User,
+    rawIdea: string,
+  ): Promise<{ idea: string; drafts: DraftView[]; ready: Promise<void> }> {
+    const { db } = this.deps;
+    const parsed = Idea.safeParse({ idea: rawIdea });
+    if (!parsed.success) throw new StudioError(400, "Describe your idea in 3–300 characters");
+    if (this.running.has(user.id)) throw new StudioError(429, "Your drafts are still being built");
     const idea = maskText(parsed.data.idea);
-    // One batch at a time: a new idea replaces the old drafts.
-    await removeDrafts(await listDrafts(db, user.id));
+    await this.discard(user.id);
     const batchId = randomUUID();
     const title = idea.length > 30 ? `${idea.slice(0, 29)}…` : idea;
     const drafts: Place[] = [];
@@ -235,49 +227,99 @@ export function registerStudioRoutes(app: Application, deps: StudioDeps): void {
         }),
       );
     }
-    running.add(user.id);
-    // Background: drafts build one after another while the owner can already walk in.
-    void (async () => {
+    this.running.add(user.id);
+    // Background: drafts are sketched one after another while the owner can already walk in.
+    const ready = (async () => {
       try {
-        for (const [i, d] of drafts.entries()) await build(user, d, idea, i);
+        for (const [i, d] of drafts.entries()) await this.sketchDraft(user, d, idea, i);
       } finally {
-        running.delete(user.id);
+        this.running.delete(user.id);
       }
     })();
-    res.status(202).json({ agentAvailable: Boolean(agent), idea, drafts: drafts.map(draftView) });
+    return { idea, drafts: drafts.map(draftView), ready };
+  }
+
+  async discard(userId: string): Promise<void> {
+    const drafts = await listDrafts(this.deps.db, userId);
+    await deletePlaces(
+      this.deps.db,
+      drafts.map((d) => d.id),
+    );
+  }
+
+  /** Turns one draft into a private space (saving any edits since) and deletes the others. */
+  async keep(user: User, draftId: string, rawName?: string): Promise<{ id: string; name: string }> {
+    const { db, editors, liveRooms } = this.deps;
+    const drafts = await listDrafts(db, user.id);
+    const draft = drafts.find((d) => d.id === draftId);
+    if (!draft) throw new StudioError(404, "No such draft");
+    if (draft.buildState === "building")
+      throw new StudioError(409, "This draft is still being built");
+    const owned = await listSpaces(db, user.id);
+    if (owned.length >= SPACE_LIMIT[user.kind]) {
+      const hint = user.kind === "guest" ? " Keep your account (add your email) to make more." : "";
+      throw new StudioError(
+        403,
+        `You can have ${SPACE_LIMIT[user.kind]} space(s). Remove one first.${hint}`,
+      );
+    }
+    const parsed = Keep.safeParse({ name: rawName });
+    const name = maskText(parsed.data?.name ?? (draft.idea ?? draft.name).slice(0, 40));
+    const editor = await editors.get(draft.id);
+    if (editor && editor.draftSteps.length > 0) await editor.save(user.id);
+    await keepDraft(db, draft.id, name);
+    await deletePlaces(
+      db,
+      drafts.filter((d) => d.id !== draft.id).map((d) => d.id),
+    );
+    await liveRooms.get(draft.id)?.refreshPlace();
+    return { id: draft.id, name };
+  }
+}
+
+/** HTTP routes for the studio, the gallery and submitting to it. */
+export function registerStudioRoutes(
+  app: Application,
+  studio: Studio,
+  deps: StudioDeps & { requireUser(req: Request, res: Response): Promise<User | undefined> },
+): void {
+  const { db, liveRooms, requireUser } = deps;
+  const send = (res: Response, run: () => Promise<unknown>, status = 200) =>
+    run()
+      .then((body) => res.status(status).json(body))
+      .catch((err) => {
+        if (err instanceof StudioError) res.status(err.status).json({ error: err.message });
+        else throw err;
+      });
+
+  app.get("/api/studio", async (req, res) => {
+    const user = await requireUser(req, res);
+    if (user) await send(res, () => studio.list(user.id));
+  });
+
+  app.post("/api/studio/drafts", async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    await send(
+      res,
+      async () => {
+        const { idea, drafts } = await studio.make(user, String(req.body?.idea ?? ""));
+        return { idea, drafts };
+      },
+      202,
+    );
   });
 
   app.delete("/api/studio/drafts", async (req, res) => {
     const user = await requireUser(req, res);
-    if (!user) return;
-    await removeDrafts(await listDrafts(db, user.id));
-    res.json({ ok: true });
+    if (user) await send(res, async () => (await studio.discard(user.id), { ok: true }));
   });
 
   app.post("/api/studio/drafts/:id/keep", async (req, res) => {
     const user = await requireUser(req, res);
     if (!user) return;
-    const drafts = await listDrafts(db, user.id);
-    const draft = drafts.find((d) => d.id === req.params.id);
-    if (!draft) return void res.status(404).json({ error: "No such draft" });
-    if (draft.buildState === "building")
-      return void res.status(409).json({ error: "This draft is still being built" });
-    const owned = await listSpaces(db, user.id);
-    if (owned.length >= SPACE_LIMIT[user.kind]) {
-      const hint = user.kind === "guest" ? " Keep your account (add your email) to make more." : "";
-      return void res.status(403).json({
-        error: `You can have ${SPACE_LIMIT[user.kind]} space(s). Remove one first.${hint}`,
-      });
-    }
-    const parsed = Keep.safeParse(req.body ?? {});
-    const name = maskText(parsed.data?.name ?? (draft.idea ?? draft.name).slice(0, 40));
-    // Steering edits made since the draft was built are kept too.
-    const editor = await editors.get(draft.id);
-    if (editor && editor.draftSteps.length > 0) await editor.save(user.id);
-    await keepDraft(db, draft.id, name);
-    await removeDrafts(drafts.filter((d) => d.id !== draft.id));
-    await liveRooms.get(draft.id)?.refreshPlace();
-    res.json({ id: draft.id, name });
+    const name = typeof req.body?.name === "string" ? req.body.name : undefined;
+    await send(res, () => studio.keep(user, String(req.params.id), name));
   });
 
   app.post("/api/spaces/:id/submit", async (req, res) => {

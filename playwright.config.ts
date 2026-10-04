@@ -23,7 +23,7 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     // The game server also serves the built client from apps/web/dist.
-    command: `pnpm build && PORT=${port} MCP_ENABLED=1 node apps/server/dist/index.js`,
+    command: `pnpm build && PORT=${port} node apps/server/dist/index.js`,
     url: `http://localhost:${port}/health`,
     timeout: 180_000,
     reuseExistingServer: !process.env.CI,

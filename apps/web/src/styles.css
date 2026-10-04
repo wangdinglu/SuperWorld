@@ -532,7 +532,8 @@ button {
   display: grid;
   gap: 10px;
 }
-.style-picks .label {
+.style-picks .label,
+.connect-ai .label {
   display: block;
   font-size: 12px;
   font-weight: 700;
@@ -568,44 +569,6 @@ button {
 .knock.owner {
   top: auto;
   bottom: calc(max(12px, env(safe-area-inset-bottom)) + 80px);
-}
-
-.agent-log {
-  display: grid;
-  gap: 6px;
-  max-height: 34vh;
-  overflow: auto;
-}
-.msg {
-  padding: 8px 10px;
-  border-radius: 10px;
-  font-size: 14.5px;
-  line-height: 1.4;
-}
-.msg.you {
-  background: var(--accent);
-  color: var(--accent-ink);
-  justify-self: end;
-  max-width: 85%;
-}
-.msg.ai {
-  background: rgba(127, 127, 127, 0.14);
-  max-width: 95%;
-}
-.msg.error {
-  color: var(--danger);
-}
-.msg.busy {
-  font-style: italic;
-  color: var(--muted);
-}
-.msg details {
-  margin-top: 4px;
-  font-size: 13px;
-}
-.msg ul {
-  margin: 4px 0 0;
-  padding-left: 18px;
 }
 
 /* Items and behaviours */
@@ -781,4 +744,14 @@ button {
 .corridor .link {
   font-size: 22px;
   padding: 0 8px;
+}
+
+/* Connecting your own AI */
+.connect-ai code {
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  overflow-wrap: anywhere;
+  white-space: normal;
 }

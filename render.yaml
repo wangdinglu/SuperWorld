@@ -31,12 +31,6 @@ services:
         sync: false
       - key: MAIL_FROM
         sync: false
-      # AI building agent (M2.6): an Anthropic API key and the Claude model ID to use.
-      # Without both, the "Ask AI" tab says the builder isn't set up.
-      - key: ANTHROPIC_API_KEY
-        sync: false
-      - key: AGENT_MODEL
-        sync: false
-      # "1" turns on the MCP door for outside AI apps (internal for now).
+      # The MCP door (players' own AI agents) is on by default; "0" turns it off.
       - key: MCP_ENABLED
         sync: false

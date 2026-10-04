@@ -10,9 +10,10 @@ One page per decision: context, decision, consequences. Add a new file rather th
 | [004](004-phase-1-scope.md)               | Phase 1: no database, procedural avatars, TypeScript 6                                     | Accepted (avatars superseded by ADR-008) |
 | [005](005-hosting.md)                     | Free-tier hosting: Render for the server, optional Cloudflare Pages for the client         | Accepted                                 |
 | [006](006-accounts-and-database.md)       | Postgres via Drizzle, embedded PGlite fallback, email-link accounts                        | Accepted                                 |
-| [007](007-building-agent.md)              | The building agent: a Claude tool-use loop over the Creator SDK                            | Accepted                                 |
+| [007](007-building-agent.md)              | The building agent: a Claude tool-use loop over the Creator SDK                            | Superseded by ADR-013                    |
 | [008](008-vrm-avatars.md)                 | VRM avatars, one per style, made in code                                                   | Accepted                                 |
 | [009](009-items-and-behaviours.md)        | Items and behaviours as template data, one shared implementation per kind                  | Accepted                                 |
 | [010](010-materials-and-style-effects.md) | Finishes as TSL materials, outlines as geometry, screen effects per tier                   | Accepted                                 |
-| [011](011-creator-studio.md)              | Creator studio drafts are spaces, built in the background; keep one, submit to the gallery | Accepted                                 |
-| [012](012-mcp-door.md)                    | The MCP door: SDK tools over Streamable HTTP with OAuth, behind a flag                     | Accepted                                 |
+| [011](011-creator-studio.md)              | Creator studio drafts are spaces, built in the background; keep one, submit to the gallery | Accepted (amended by ADR-013)            |
+| [012](012-mcp-door.md)                    | The MCP door: SDK tools over Streamable HTTP with OAuth, behind a flag                     | Accepted (amended by ADR-013)            |
+| [013](013-bring-your-own-agent.md)        | No AI of our own: players bring their own agents through the MCP door                      | Accepted                                 |

@@ -1,6 +1,5 @@
 import { join } from "node:path";
 import { openDatabase, seedPlace } from "@superworld/db";
-import { BuildingAgent } from "./agent.ts";
 import { createServer } from "./app.ts";
 import { loadContent } from "./content.ts";
 import { createMailer } from "./mailer.ts";
@@ -30,14 +29,15 @@ for (const place of content.world.places) {
   }
 }
 
-const agent = BuildingAgent.fromEnv();
-if (!agent)
-  console.log("AI building agent is off: set ANTHROPIC_API_KEY and AGENT_MODEL to turn it on.");
-// The MCP door is internal for now: on only when MCP_ENABLED=1.
+// The MCP door is how players' own AI agents build (the server calls no language model).
+// On by default; MCP_ENABLED=0 turns it off.
 const serverUrl =
   process.env.RENDER_EXTERNAL_URL ?? process.env.SERVER_URL ?? `http://localhost:${port}`;
+// OAuth needs https, except on localhost.
+const secureIssuer = /^https:|^http:\/\/(localhost|127\.0\.0\.1)[:/]/.test(serverUrl);
+if (!secureIssuer) console.warn(`MCP door is off: ${serverUrl} isn't https (set SERVER_URL).`);
 const mcp =
-  process.env.MCP_ENABLED === "1"
+  process.env.MCP_ENABLED !== "0" && secureIssuer
     ? { issuerUrl: serverUrl, consentUrl: process.env.PUBLIC_URL ?? serverUrl }
     : undefined;
 if (mcp) console.log(`MCP door is on at ${serverUrl}/mcp`);
@@ -45,7 +45,6 @@ const server = createServer({
   content,
   db: database.db,
   mailer: createMailer(),
-  ...(agent ? { agent } : {}),
   ...(mcp ? { mcp } : {}),
 });
 await server.listen(port, "0.0.0.0");

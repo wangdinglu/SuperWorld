@@ -1,7 +1,8 @@
 import { useState } from "preact/hooks";
 import { account, api } from "../account.ts";
 import type { Game } from "../game.ts";
-import { agentBusy, agentLog, editResult, place } from "../store.ts";
+import { editResult, place } from "../store.ts";
+import { ConnectAi } from "./ConnectAi.tsx";
 
 const LIBRARY = [
   ["prim/tree", "🌲 Tree"],
@@ -35,10 +36,7 @@ export function BuildPanel(props: { game: Game; onClose(): void }) {
   const p = place.value!;
   // The space's style as everyone sees it (its own topics over the world's defaults).
   const style = game.currentStyle();
-  const [tab, setTab] = useState<"ai" | "add" | "objects" | "style" | "settings">(
-    p.agentAvailable ? "ai" : "add",
-  );
-  const [prompt, setPrompt] = useState("");
+  const [tab, setTab] = useState<"ai" | "add" | "objects" | "style" | "settings">("add");
   const objects = game.objects();
   const unsaved = p.draftSteps.length;
 
@@ -59,10 +57,10 @@ export function BuildPanel(props: { game: Game; onClose(): void }) {
         </button>
       </div>
       <div class="tabs" role="tablist">
-        {(["ai", "add", "objects", "style", "settings"] as const).map((t) => (
+        {(["add", "objects", "style", "ai", "settings"] as const).map((t) => (
           <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>
             {t === "ai"
-              ? "✨ Ask AI"
+              ? "🤖 Your AI"
               : t === "add"
                 ? "Add"
                 : t === "objects"
@@ -74,75 +72,7 @@ export function BuildPanel(props: { game: Game; onClose(): void }) {
         ))}
       </div>
 
-      {tab === "ai" && (
-        <div class="stack">
-          {!p.agentAvailable ? (
-            <p class="muted-text">
-              The AI builder isn't set up on this server yet. Use the Add tab to build by hand.
-            </p>
-          ) : (
-            <>
-              <div class="agent-log" aria-live="polite">
-                {agentLog.value.length === 0 && (
-                  <p class="muted-text">
-                    Describe what you want, like “a cosy reading garden with benches and lamps” or
-                    “make it feel like night”. Every change can be undone, and nothing is kept until
-                    you press Save.
-                  </p>
-                )}
-                {agentLog.value.map((m) => (
-                  <div key={m.id} class={`msg ${m.from}${m.error ? " error" : ""}`}>
-                    {m.text}
-                    {m.steps && m.steps.length > 0 && (
-                      <details>
-                        <summary>
-                          {m.steps.length} change{m.steps.length === 1 ? "" : "s"}
-                        </summary>
-                        <ul>
-                          {m.steps.map((s, i) => (
-                            <li key={i}>{s}</li>
-                          ))}
-                        </ul>
-                      </details>
-                    )}
-                  </div>
-                ))}
-                {agentBusy.value && (
-                  <div class="msg ai busy">
-                    {agentBusy.value.state === "thinking"
-                      ? "Thinking…"
-                      : `Working: ${agentBusy.value.step?.replace(/_/g, " ")}`}
-                  </div>
-                )}
-              </div>
-              <form
-                class="row"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const text = prompt.trim();
-                  if (!text || agentBusy.value) return;
-                  game.askAgent(text);
-                  setPrompt("");
-                }}
-              >
-                <input
-                  value={prompt}
-                  maxLength={1000}
-                  placeholder="What should I build?"
-                  onInput={(e) => setPrompt((e.target as HTMLInputElement).value)}
-                />
-                <button
-                  class="primary"
-                  type="submit"
-                  disabled={!prompt.trim() || Boolean(agentBusy.value)}
-                >
-                  Ask
-                </button>
-              </form>
-            </>
-          )}
-        </div>
-      )}
+      {tab === "ai" && <ConnectAi />}
 
       {tab === "add" && (
         <div class="grid2">

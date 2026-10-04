@@ -25,7 +25,7 @@ await seedPlace(database.db, {
   name: "Plaza",
   scene: content.scenes.plaza!,
 });
-// No agent on this server: the studio sketches drafts itself.
+// The server calls no language model: the studio sketches drafts itself.
 const server = createServer({
   content,
   db: database.db,
@@ -96,7 +96,6 @@ describe("creator studio", () => {
     expect((await api("/api/studio/drafts", token, { idea: "hi" })).status).toBe(400);
     const made = await api("/api/studio/drafts", token, { idea: "a flower garden for picnics" });
     expect(made.status).toBe(202);
-    expect(made.body.agentAvailable).toBe(false);
     expect(made.body.drafts.map((d: any) => d.name)).toEqual([
       "a flower garden for picnics · A",
       "a flower garden for picnics · B",

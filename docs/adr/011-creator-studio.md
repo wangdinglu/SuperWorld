@@ -1,6 +1,6 @@
 # ADR-011: The creator studio builds drafts as spaces
 
-**Status:** Accepted · 4 Oct 2026
+**Status:** Accepted · 4 Oct 2026 · amended by ADR-013 (no server-side agent; drafts are sketched and rebuilt by players' own agents; the MCP door is on by default)
 
 **Context.** M2.10 asks for a draft corridor, background generation, steering by talking, and keep, save or submit, done when "an idea becomes a kept draft in a private space". Spaces (ADR-006, M2.5) and the building agent (ADR-007) already give live drafts, undo, saving and an AI that edits through the SDK.
 

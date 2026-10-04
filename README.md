@@ -65,13 +65,11 @@ tools/avatars     the code that builds the avatars
 
 **Accounts (Phase 2).** Players are saved in Postgres. Set `DATABASE_URL` on Render to a free Neon database so accounts survive restarts; without it the server uses an embedded database that resets whenever the free service restarts. For sign-in emails, set `RESEND_API_KEY` (Resend's free tier) and `PUBLIC_URL` (the address players open, e.g. the GitHub Pages URL). Without an email key, sign-in links appear in the server log.
 
-**AI building agent (Phase 2).** Set `ANTHROPIC_API_KEY` and `AGENT_MODEL` (a Claude model ID from Anthropic's model list; the current Opus-tier model is the intended default) on the server. Owners then get a "✨ Ask AI" tab in the build panel. Each player gets a daily request quota (`AGENT_DAILY_LIMIT_GUEST`, default 10; `AGENT_DAILY_LIMIT_MEMBER`, default 40); token usage is logged as `agent-usage` lines.
-
 **Client on Cloudflare Pages (optional, faster worldwide).** Create a Pages project from this repo with build command `pnpm --filter @superworld/web build`, output directory `apps/web/dist`, and the environment variable `VITE_SERVER_URL` set to your Render URL. Then set `ALLOWED_ORIGINS` on Render to your Pages URL.
 
-**MCP door (internal).** With `MCP_ENABLED=1`, the server speaks MCP (Streamable HTTP) at `<server>/mcp`, with OAuth: an MCP client such as Claude Desktop or Claude Code registers itself, the player approves it on a consent screen in the game, and the client can then list and create spaces and run every Creator SDK tool on them (`space_save` keeps the result). Tokens live in memory, so a server restart signs MCP clients out. The issuer URL is `RENDER_EXTERNAL_URL` on Render, or `SERVER_URL`.
+**Build with your own AI (MCP).** SuperWorld runs no AI itself and needs no model API key. The server speaks MCP (Streamable HTTP) at `<server>/mcp`, with OAuth: connect any MCP app, for example `claude mcp add --transport http superworld <server>/mcp` in Claude Code, approve it on the consent screen in the game, and ask it to build. It can list and create spaces, run every Creator SDK tool, start the creator studio, and save; you watch each step live. The build panel's "🤖 Your AI" tab shows the URL. Tokens live in memory, so a server restart signs MCP apps out. The door is on by default (`MCP_ENABLED=0` turns it off) and needs an https URL: `RENDER_EXTERNAL_URL` on Render, or `SERVER_URL`.
 
-**Creator studio.** The ✨ Studio button turns an idea into three drafts built in the background (by the agent when it's configured, as quick sketches otherwise). Walk through them, steer one by talking, keep it, and submit it to the gallery.
+**Creator studio.** The ✨ Studio button turns an idea into three quick sketches (cosy, grand, playful). Ask your AI to rebuild them (it can also start the studio itself), walk through them, keep one, and submit it to the gallery.
 
 ## Reading a playtest
 

@@ -156,20 +156,6 @@ export type TelemetryMessage = z.infer<typeof TelemetryMessage>;
 
 /** Owner → server: run one Creator SDK tool on the space's draft. */
 export const EditMessage = z.object({ tool: z.string().max(64), input: z.unknown() });
-/** Owner → server: ask the building agent to do something. */
-export const AgentMessage = z.object({ text: z.string().trim().min(1).max(1000) });
-
-/** Server → owner while the agent works, and when it's done. */
-export interface AgentProgressMessage {
-  state: "thinking" | "working";
-  step?: string;
-}
-export interface AgentReplyMessage {
-  text: string;
-  steps: string[];
-  error?: string;
-}
-
 /** Owner → server: let a knocking visitor in (or not). */
 export const AdmitMessage = z.object({ userId: z.string().uuid(), allow: z.boolean() });
 
@@ -185,8 +171,8 @@ export interface PlaceInfo {
   scene: unknown;
   /** Unsaved edit steps in the draft. */
   draftSteps: string[];
-  /** Whether this server has the AI building agent configured. */
-  agentAvailable: boolean;
+  /** Where players connect their own AI agents (the MCP door), or null when it's off. */
+  mcpUrl: string | null;
   /** "draft" while the space is a creator studio draft; "kept" once it's a real space. */
   stage: "draft" | "kept";
   /** Whether the owner submitted it to the public gallery. */
