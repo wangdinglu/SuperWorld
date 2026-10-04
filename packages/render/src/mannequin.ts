@@ -1,8 +1,15 @@
 import * as THREE from "three/webgpu";
 
-export type MannequinEmote = "wave" | "dance" | "cheer" | "sit";
+export type MannequinEmote = "wave" | "dance" | "cheer" | "sit" | "throw" | "play";
 
-const EMOTE_SECONDS: Record<MannequinEmote, number> = { wave: 2.4, dance: 4, cheer: 2.2, sit: 6 };
+const EMOTE_SECONDS: Record<MannequinEmote, number> = {
+  wave: 2.4,
+  dance: 4,
+  cheer: 2.2,
+  sit: 6,
+  throw: 0.5,
+  play: 0.6,
+};
 
 const skinMaterial = new THREE.MeshLambertMaterial({ color: "#f1d3b8" });
 const darkMaterial = new THREE.MeshLambertMaterial({ color: "#2b2f3a" });
@@ -35,8 +42,11 @@ export class Mannequin {
   private readonly armR = new THREE.Group();
   private readonly head = new THREE.Group();
   private readonly clothes: THREE.MeshLambertMaterial;
+  private readonly handSlot = new THREE.Group();
+  private readonly headSlot = new THREE.Group();
   private phase = 0;
   private emote: { name: MannequinEmote; t: number } | undefined;
+  private seated = false;
 
   constructor(colour: string, castShadow = false) {
     this.clothes = new THREE.MeshLambertMaterial({ color: colour });
@@ -55,13 +65,16 @@ export class Mannequin {
     const headMesh = mesh(geo.head, skinMaterial);
     const nose = mesh(geo.nose, skinMaterial);
     nose.position.set(0, 0, 0.19);
-    this.head.add(headMesh, nose);
+    this.headSlot.position.y = 0.17;
+    this.head.add(headMesh, nose, this.headSlot);
     this.hips.add(this.head);
 
     this.armL.position.set(0.32, 0.66, 0);
     this.armR.position.set(-0.32, 0.66, 0);
     this.armL.add(mesh(geo.limb, this.clothes));
     this.armR.add(mesh(geo.limb, this.clothes));
+    this.handSlot.position.set(0, -0.66, 0.04);
+    this.armR.add(this.handSlot);
     this.hips.add(this.armL, this.armR);
 
     this.legL.position.set(0.12, 0, 0);
@@ -85,15 +98,51 @@ export class Mannequin {
     this.emote = { name, t: 0 };
   }
 
+  /** Holds the seated pose until set back to false. */
+  setSeated(seated: boolean): void {
+    this.seated = seated;
+  }
+
+  /** Puts an object in the right hand (or empties it). The mannequin doesn't own or dispose it. */
+  setHeld(object: THREE.Object3D | null): void {
+    this.handSlot.clear();
+    if (object) this.handSlot.add(object);
+  }
+
+  /** Puts an object on the head (or takes it off). */
+  setWorn(object: THREE.Object3D | null): void {
+    this.headSlot.clear();
+    if (object) this.headSlot.add(object);
+  }
+
+  private get holding(): boolean {
+    return this.handSlot.children.length > 0;
+  }
+
   /** Animates one frame. `speed` is horizontal m/s; any movement cancels an emote. */
   update(dt: number, speed: number, grounded: boolean): void {
-    if (speed > 0.6 || !grounded) this.emote = undefined;
+    const brief = this.emote?.name === "throw" || this.emote?.name === "play";
+    if ((speed > 0.6 || !grounded) && !brief) this.emote = undefined;
     const reset = (g: THREE.Group) => g.rotation.set(0, 0, 0);
     [this.legL, this.legR, this.armL, this.armR, this.head].forEach(reset);
     this.hips.position.y = 0.9;
     this.hips.rotation.set(0, 0, 0);
     this.body.position.y = 0;
+    this.pose(dt, speed, grounded);
+    // Carrying something: the right arm holds it out in front, unless an emote moves the arm.
+    if (this.holding && (!this.emote || this.emote.name === "sit" || this.seated))
+      this.armR.rotation.x = -0.9;
+  }
 
+  private sitPose(): void {
+    this.hips.position.y = 0.42;
+    this.legL.rotation.x = -1.45;
+    this.legR.rotation.x = -1.45;
+    this.armL.rotation.x = -0.4;
+    this.armR.rotation.x = -0.4;
+  }
+
+  private pose(dt: number, speed: number, grounded: boolean): void {
     if (this.emote) {
       this.emote.t += dt;
       const t = this.emote.t;
@@ -118,14 +167,27 @@ export class Mannequin {
           this.body.position.y = Math.abs(Math.sin(t * 7)) * 0.25;
           break;
         case "sit":
-          this.hips.position.y = 0.42;
-          this.legL.rotation.x = -1.45;
-          this.legR.rotation.x = -1.45;
-          this.armL.rotation.x = -0.4;
-          this.armR.rotation.x = -0.4;
+          this.sitPose();
+          break;
+        case "throw": {
+          // Wind up, then swing the arm over.
+          const k = t / EMOTE_SECONDS.throw;
+          this.armR.rotation.x = k < 0.35 ? -2.8 * (k / 0.35) : -2.8 + (k - 0.35) * 5;
+          this.hips.rotation.y = -0.3 + k * 0.6;
+          break;
+        }
+        case "play":
+          this.armR.rotation.x = -1.2 + Math.sin(t * 20) * 0.4;
+          this.armL.rotation.x = -1.2 - Math.sin(t * 20) * 0.4;
           break;
       }
+      if (this.seated && this.emote.name !== "sit") this.sitPose();
       if (done) this.emote = undefined;
+      return;
+    }
+
+    if (this.seated) {
+      this.sitPose();
       return;
     }
 

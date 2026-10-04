@@ -1,7 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Client, type Room } from "@colyseus/sdk";
+import { interactionsOf } from "@superworld/core";
 import {
+  type InventoryMessage,
   MoveInput,
+  type PlayBroadcast,
   PROTOCOL_VERSION,
   quantiseAxis,
   type ChatBroadcast,
@@ -159,6 +162,104 @@ describe("plaza room", () => {
     await expect(
       old.joinOrCreate("plaza", { protocol: PROTOCOL_VERSION - 1, name: "Old", colour: "#000000" }),
     ).rejects.toThrow(/out of date/);
+  });
+});
+
+describe("items and behaviours", () => {
+  const library = new Map(content.templates.templates.map((t) => [t.id, t]));
+  const at = (id: string) => content.scenes.plaza!.instances.find((i) => i.id === id)!.at;
+  let room: Room;
+  let input: { data: MoveInput; send(): void };
+  let inventory: string[] = [];
+  const me = () => room.state.players?.get(room.sessionId);
+
+  /** Steers the avatar to (x, z) with real inputs, then stops. */
+  async function walkTo(x: number, z: number, within = 0.6): Promise<void> {
+    const start = Date.now();
+    for (;;) {
+      const dx = x - me().x;
+      const dz = z - me().z;
+      const d = Math.hypot(dx, dz);
+      if (d < within) break;
+      if (Date.now() - start > 8000) throw new Error(`stuck at ${me().x}, ${me().z}`);
+      input.data.moveX = quantiseAxis(dx / Math.max(d, 1));
+      input.data.moveZ = quantiseAxis(dz / Math.max(d, 1));
+      input.send();
+      await sleep(1000 / 30);
+    }
+    input.data.moveX = 0;
+    input.data.moveZ = 0;
+    input.send();
+    await sleep(100);
+  }
+
+  beforeAll(async () => {
+    room = await join("Ivy");
+    rooms.push(room);
+    room.onMessage("inventory", (m: InventoryMessage) => (inventory = m.items));
+    await until(() => me() !== undefined);
+    input = room.input({ type: MoveInput, mode: "reliable" });
+  });
+
+  it("takes a ball from the basket into the hand and the inventory", async () => {
+    const [x, , z] = at("ball-basket-1");
+    await walkTo(x + 1.2, z);
+    room.send("interact", { instance: "ball-basket-1" });
+    await until(() => me().hand === "item/ball");
+    await until(() => inventory.includes("item/ball"));
+  });
+
+  it("throws the ball, and picks it up again where it lands", async () => {
+    room.send("throw");
+    await until(() => me().hand === "" && room.state.props.size === 1);
+    const [id, prop] = [...room.state.props.entries()][0]!;
+    await until(() => prop.resting, 5000);
+    await walkTo(prop.x, prop.z, 1);
+    room.send("interact", { prop: id });
+    await until(() => me().hand === "item/ball" && room.state.props.size === 0);
+  });
+
+  it("wears a hat, takes it off and puts it back on from the inventory only", async () => {
+    const [x, , z] = at("hat-stand-1");
+    await walkTo(x - 1, z);
+    room.send("interact", { instance: "hat-stand-1" });
+    await until(() => me().head === "item/party-hat");
+    room.send("unequip", { slot: "head" });
+    await until(() => me().head === "");
+    room.send("equip", { item: "item/party-hat" });
+    await until(() => me().head === "item/party-hat");
+    room.send("equip", { item: "item/lantern" });
+    await sleep(200);
+    expect(me().hand).toBe("item/ball");
+  });
+
+  it("ignores things out of reach", async () => {
+    const played: PlayBroadcast[] = [];
+    room.onMessage("play", (m: PlayBroadcast) => played.push(m));
+    room.send("interact", { instance: "drum-1" });
+    await sleep(200);
+    expect(played).toHaveLength(0);
+  });
+
+  it("sits on a bench seat and stands up on moving", async () => {
+    const seat = interactionsOf(
+      content.scenes.plaza!.instances.find((i) => i.id === "bench-1")!,
+      library,
+    )[0]!;
+    // Coming from the spawn side, the backrest stops us within reach of the seat.
+    await walkTo(seat.at[0], seat.at[2], 1.2);
+    room.send("interact", { instance: "bench-1" });
+    await until(() => me().seat.startsWith("bench-1#"));
+    expect(me().y).toBeCloseTo(seat.at[1], 1);
+    // Idle inputs keep me seated; moving stands me up.
+    for (let i = 0; i < 5; i++) input.send();
+    await sleep(200);
+    expect(me().seat).not.toBe("");
+    input.data.moveX = quantiseAxis(1);
+    input.send();
+    await until(() => me().seat === "");
+    input.data.moveX = 0;
+    input.send();
   });
 });
 

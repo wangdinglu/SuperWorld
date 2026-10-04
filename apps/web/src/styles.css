@@ -194,6 +194,7 @@ button {
 .hud input,
 .hud .panel,
 .hud .emotes,
+.hud .screen-backdrop,
 .joystick {
   pointer-events: auto;
 }
@@ -599,4 +600,66 @@ button {
 .msg ul {
   margin: 4px 0 0;
   padding-left: 18px;
+}
+
+/* Items and behaviours */
+.use-bar {
+  position: absolute;
+  left: 50%;
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 64px);
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  max-width: calc(100vw - 24px);
+}
+.use {
+  padding: 10px 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.use kbd {
+  font: inherit;
+  font-size: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1px 6px;
+  margin-right: 4px;
+}
+.bag ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  max-height: 40vh;
+  overflow: auto;
+}
+.bag li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.screen-backdrop {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 0.35);
+  padding: 16px;
+}
+.screen {
+  width: min(440px, 100%);
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+.screen h2 {
+  margin: 0;
+}
+.screen p {
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
 }

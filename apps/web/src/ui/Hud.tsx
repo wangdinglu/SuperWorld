@@ -5,18 +5,22 @@ import {
   cameraLevel,
   chatLog,
   chatOpen,
+  equipped,
   hint,
+  interaction,
   muted,
   people,
   personKey,
   ping,
   place,
   renderInfo,
+  screen,
   soloMode,
   toggleMute,
 } from "../store.ts";
 import { Joystick } from "./Joystick.tsx";
 import { AccountPanel } from "./AccountPanel.tsx";
+import { BagPanel } from "./BagPanel.tsx";
 import { BuildPanel } from "./BuildPanel.tsx";
 import { KnockPrompts } from "./KnockPrompts.tsx";
 import { SpacesPanel } from "./SpacesPanel.tsx";
@@ -34,7 +38,9 @@ export function Hud(props: { game: Game }) {
   const { game } = props;
   const [showPeople, setShowPeople] = useState(false);
   const [showEmotes, setShowEmotes] = useState(false);
-  const [panel, setPanel] = useState<"none" | "account" | "spaces" | "build" | "people">("none");
+  const [panel, setPanel] = useState<"none" | "account" | "spaces" | "build" | "people" | "bag">(
+    "none",
+  );
   const showAccount = panel === "account";
   const toggle = (p: typeof panel) => setPanel(panel === p ? "none" : p);
   const [draft, setDraft] = useState("");
@@ -91,7 +97,24 @@ export function Hud(props: { game: Game }) {
       {panel === "build" && place.value?.isOwner && (
         <BuildPanel game={game} onClose={() => setPanel("none")} />
       )}
+      {panel === "bag" && <BagPanel game={game} onClose={() => setPanel("none")} />}
       <KnockPrompts game={game} />
+      {screen.value && (
+        <div class="screen-backdrop" onClick={() => game.closeScreen()}>
+          <div
+            class="card screen"
+            role="dialog"
+            aria-label={screen.value.title}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2>{screen.value.title}</h2>
+            <p>{screen.value.text}</p>
+            <button class="primary" onClick={() => game.closeScreen()}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
       {showAccount && <AccountPanel onClose={() => setPanel("none")} />}
 
       {showPeople && panel === "none" && (
@@ -138,6 +161,19 @@ export function Hud(props: { game: Game }) {
       )}
 
       {hint.value && <div class="toast">{hint.value}</div>}
+
+      <div class="use-bar">
+        {interaction.value && (
+          <button class="pill strong use" onClick={() => game.interact()}>
+            {!touch && <kbd>E</kbd>} {interaction.value.label}
+          </button>
+        )}
+        {equipped.value.canThrow && (
+          <button class="pill use" onClick={() => game.throwItem()}>
+            {!touch && <kbd>F</kbd>} Throw
+          </button>
+        )}
+      </div>
 
       <div class="chatlog" aria-live="polite">
         {recent.map((m) => (
@@ -188,6 +224,14 @@ export function Hud(props: { game: Game }) {
             ))}
           </div>
         )}
+        <button
+          class="round"
+          aria-label="Bag"
+          aria-expanded={panel === "bag"}
+          onClick={() => toggle("bag")}
+        >
+          🎒
+        </button>
         <button class="round" aria-label="Chat" onClick={() => (chatOpen.value = !chatOpen.value)}>
           💬
         </button>

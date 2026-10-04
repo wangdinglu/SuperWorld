@@ -194,6 +194,31 @@ export function buildPlace(
   };
 }
 
+/**
+ * One template as a plain group of meshes (for items in hands, on heads and on the ground).
+ * The geometry belongs to the group: call the returned dispose when done.
+ */
+export function buildTemplateObject(
+  template: Template,
+  style: ResolvedStyle,
+): { object: THREE.Group; dispose(): void } {
+  const object = new THREE.Group();
+  object.name = template.id;
+  const geometries: THREE.BufferGeometry[] = [];
+  for (const part of template.parts) {
+    const geometry = geometryFor(part, style);
+    geometries.push(geometry);
+    const mesh = new THREE.Mesh(
+      geometry,
+      materialFor(colourOf(part.colour, style), style, part.emissive),
+    );
+    mesh.position.set(...part.at);
+    mesh.rotation.y = part.yaw;
+    object.add(mesh);
+  }
+  return { object, dispose: () => geometries.forEach((g) => g.dispose()) };
+}
+
 /** Fog colour and range for the light topic. */
 export function fogFor(style: ResolvedStyle): THREE.Fog {
   const rig = LIGHT_RIGS[style.light];

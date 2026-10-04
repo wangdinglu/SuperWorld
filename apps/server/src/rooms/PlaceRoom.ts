@@ -1,6 +1,26 @@
 import { type AuthContext, type Client, Room } from "@colyseus/core";
 import { StateView } from "@colyseus/schema";
-import { createRng, initPhysics, PlaceWorld, TICK_RATE } from "@superworld/core";
+import {
+  createRng,
+  INTERACT_RANGE,
+  INTERACT_SLACK,
+  type Interaction,
+  interactionsOf,
+  INVENTORY_MAX,
+  initPhysics,
+  MAX_PROPS,
+  PlaceWorld,
+  PROP_LIFETIME_S,
+  type PropState,
+  reachOf,
+  seatKey,
+  sitOn,
+  standUp,
+  stepProp,
+  throwFrom,
+  TICK_RATE,
+  wantsToStand,
+} from "@superworld/core";
 import {
   AdmitMessage,
   AgentMessage,
@@ -8,11 +28,16 @@ import {
   ChatMessage,
   EditMessage,
   EmoteMessage,
+  EquipMessage,
+  InteractMessage,
+  type InventoryMessage,
   JoinOptions,
   MoveInput,
   PLAZA_CAPACITY,
   PlaceState,
+  type PlayBroadcast,
   Player,
+  Prop,
   PROTOCOL_VERSION,
   ReportMessage,
   TelemetryMessage,
@@ -23,10 +48,19 @@ import {
   type PlaceInfo,
   type ScenePatchBroadcast,
   SpaceId,
+  UnequipMessage,
 } from "@superworld/protocol";
-import type { Scene } from "@superworld/schema";
+import type { Scene, Template } from "@superworld/schema";
 import type { Content } from "../content.ts";
-import { createReport, type Db, getPlace, getUser, type Place, touchUser } from "@superworld/db";
+import {
+  addToInventory,
+  createReport,
+  type Db,
+  getPlace,
+  getUser,
+  type Place,
+  touchUser,
+} from "@superworld/db";
 import type { BuildingAgent } from "../agent.ts";
 import type { EditorEvent, SpaceEditor, SpaceEditors } from "../editors.ts";
 import type { Knocks } from "../knocks.ts";
@@ -87,6 +121,16 @@ export class PlaceRoom extends Room<{
   private readonly chatLimit = new RateLimiter(5, 10_000);
   private readonly emoteLimit = new RateLimiter(2, 2_000);
   private readonly telemetryLimit = new RateLimiter(2, 20_000);
+  private readonly interactLimit = new RateLimiter(6, 2_000);
+  private readonly throwLimit = new RateLimiter(3, 2_000);
+  private templates!: ReadonlyMap<string, Template>;
+  /** Velocities and ages of loose items; positions are mirrored into the state for clients. */
+  private readonly props = new Map<string, PropState>();
+  private nextProp = 1;
+  /** Each player's inventory, loaded on join. */
+  private readonly inventories = new Map<string, string[]>();
+  /** Which note each instrument plays next. */
+  private readonly notes = new Map<string, number>();
   private tickCount = 0;
   private stepMs = 0;
 
@@ -121,6 +165,7 @@ export class PlaceRoom extends Room<{
       this.scene = scene;
     }
     this.world = PlaceWorld.build(this.scene, options.content.templates);
+    this.templates = new Map(options.content.templates.templates.map((t) => [t.id, t]));
     this.state.place = this.scene.place;
     this.state.revision = this.scene.revision;
     this.patchRate = 1000 / PATCH_RATE_HZ;
@@ -131,9 +176,16 @@ export class PlaceRoom extends Room<{
       const started = performance.now();
       for (const [sessionId, player] of this.state.players) {
         for (const input of this.inputs.get(sessionId).take(MAX_INPUTS_PER_TICK)) {
-          this.world.stepAvatar(sessionId, player, toCommand(input), ctx.dt);
+          const command = toCommand(input);
+          if (player.seat) {
+            if (!wantsToStand(command)) continue;
+            player.seat = "";
+            standUp(player);
+          }
+          this.world.stepAvatar(sessionId, player, command, ctx.dt);
         }
       }
+      this.stepProps(ctx.dt);
       if (++this.tickCount % INTEREST_EVERY_TICKS === 0) this.updateInterest();
       this.stepMs += performance.now() - started;
       if (this.tickCount % STATS_EVERY_TICKS === 0) {
@@ -196,6 +248,148 @@ export class PlaceRoom extends Room<{
     });
 
     this.registerEditing();
+    this.registerItems();
+  }
+
+  /** Sitting, taking, holding, throwing, wearing and playing: one implementation for every template. */
+  private registerItems(): void {
+    this.onMessage("interact", (client, message: unknown) => {
+      const parsed = InteractMessage.safeParse(message);
+      const player = this.state.players.get(client.sessionId);
+      if (!parsed.success || !player || !this.interactLimit.allow(client.sessionId)) return;
+      if ("prop" in parsed.data) return this.pickUp(client, player, parsed.data.prop);
+      const instanceId = parsed.data.instance;
+      const inst = this.scene.instances.find((i) => i.id === instanceId);
+      if (!inst) return;
+      let chosen: Interaction | undefined;
+      let best = Infinity;
+      for (const i of interactionsOf(inst, this.templates)) {
+        if (i.kind === "screen" || i.kind === "pickup") continue;
+        if (i.kind === "sit" && this.seatTaken(seatKey(i.instance, i.seat))) continue;
+        const d = Math.hypot(i.at[0] - player.x, i.at[2] - player.z);
+        if (d > reachOf(i, inst, this.templates) + INTERACT_SLACK || d >= best) continue;
+        chosen = i;
+        best = d;
+      }
+      if (!chosen) return;
+      switch (chosen.kind) {
+        case "sit":
+          player.seat = seatKey(chosen.instance, chosen.seat);
+          sitOn(player, chosen);
+          break;
+        case "take":
+          this.give(client, player, chosen.item);
+          break;
+        case "play": {
+          const n = this.notes.get(inst.id) ?? 0;
+          this.notes.set(inst.id, n + 1);
+          const payload: PlayBroadcast = {
+            sessionId: client.sessionId,
+            instance: inst.id,
+            sound: chosen.sound,
+            note: chosen.notes[n % chosen.notes.length]!,
+          };
+          this.broadcast("play", payload);
+          const anim: EmoteBroadcast = { sessionId: client.sessionId, emote: "play" };
+          this.broadcast("emote", anim);
+          break;
+        }
+      }
+    });
+
+    this.onMessage("equip", (client, message: unknown) => {
+      const parsed = EquipMessage.safeParse(message);
+      const player = this.state.players.get(client.sessionId);
+      if (!parsed.success || !player) return;
+      if (!this.inventories.get(client.sessionId)?.includes(parsed.data.item)) return;
+      this.wield(player, parsed.data.item);
+    });
+
+    this.onMessage("unequip", (client, message: unknown) => {
+      const parsed = UnequipMessage.safeParse(message);
+      const player = this.state.players.get(client.sessionId);
+      if (parsed.success && player) player[parsed.data.slot] = "";
+    });
+
+    this.onMessage("throw", (client) => {
+      const player = this.state.players.get(client.sessionId);
+      if (!player?.hand || !this.throwLimit.allow(client.sessionId)) return;
+      if (this.templates.get(player.hand)?.item?.use !== "throw") return;
+      if (this.props.size >= MAX_PROPS) this.removeProp(this.props.keys().next().value!);
+      const id = `p${this.nextProp++}`;
+      const sim = throwFrom(player);
+      this.props.set(id, sim);
+      const prop = new Prop();
+      Object.assign(prop, { item: player.hand, x: sim.x, y: sim.y, z: sim.z, resting: false });
+      this.state.props.set(id, prop);
+      player.hand = "";
+      const anim: EmoteBroadcast = { sessionId: client.sessionId, emote: "throw" };
+      this.broadcast("emote", anim);
+    });
+  }
+
+  private seatTaken(key: string): boolean {
+    for (const p of this.state.players.values()) if (p.seat === key) return true;
+    return false;
+  }
+
+  /** Puts an item in its slot: worn items on the head, the rest in the hand. */
+  private wield(player: Player, item: string): void {
+    const use = this.templates.get(item)?.item?.use;
+    if (!use) return;
+    player[use === "wear" ? "head" : "hand"] = item;
+  }
+
+  /** Gives a player an item: they hold or wear it now, and keep it in their inventory. */
+  private give(client: Client, player: Player, item: string): void {
+    this.wield(player, item);
+    const userId = (client.auth as Identity).userId;
+    const local = this.inventories.get(client.sessionId) ?? [];
+    this.inventories.set(
+      client.sessionId,
+      [...local.filter((i) => i !== item), item].slice(-INVENTORY_MAX),
+    );
+    void addToInventory(this.db, userId, item, INVENTORY_MAX)
+      .then((items) => {
+        this.inventories.set(client.sessionId, items);
+        const payload: InventoryMessage = { items };
+        client.send("inventory", payload);
+      })
+      .catch((err) => console.error("inventory failed", err));
+  }
+
+  private pickUp(client: Client, player: Player, propId: string): void {
+    const sim = this.props.get(propId);
+    const prop = this.state.props.get(propId);
+    if (!sim || !prop || !sim.resting) return;
+    if (Math.hypot(sim.x - player.x, sim.z - player.z) > INTERACT_RANGE + INTERACT_SLACK) return;
+    const item = prop.item;
+    this.removeProp(propId);
+    this.give(client, player, item);
+  }
+
+  private removeProp(id: string): void {
+    this.props.delete(id);
+    this.state.props.delete(id);
+  }
+
+  private stepProps(dt: number): void {
+    const radius = this.scene.environment.ground.radius;
+    for (const [id, sim] of this.props) {
+      const wasResting = sim.resting;
+      stepProp(sim, dt, radius);
+      if (sim.age > PROP_LIFETIME_S) {
+        this.removeProp(id);
+        continue;
+      }
+      if (wasResting) continue;
+      const prop = this.state.props.get(id);
+      if (!prop) continue;
+      prop.x = sim.x;
+      prop.y = sim.y;
+      prop.z = sim.z;
+      prop.resting = sim.resting;
+    }
   }
 
   /** Space owners edit through the shared editor; everyone inside sees each step. */
@@ -277,6 +471,20 @@ export class PlaceRoom extends Room<{
 
   private onEditorEvent(event: EditorEvent): void {
     this.scene = this.editor!.scene;
+    // Anyone sitting on something that was moved or removed stands up.
+    for (const player of this.state.players.values()) {
+      if (!player.seat) continue;
+      const [instance, seat] = player.seat.split("#");
+      const inst = this.scene.instances.find((i) => i.id === instance);
+      const still =
+        inst &&
+        interactionsOf(inst, this.templates).find(
+          (i) => i.kind === "sit" && i.seat === Number(seat),
+        );
+      if (still && Math.hypot(still.at[0] - player.x, still.at[2] - player.z) < 0.01) continue;
+      player.seat = "";
+      standUp(player);
+    }
     this.rebuildWorld();
     if (event.type === "patch") {
       const payload: ScenePatchBroadcast = { patch: event.patch, draftSteps: event.draftSteps };
@@ -323,7 +531,7 @@ export class PlaceRoom extends Room<{
     return { ...identity, kind: user.kind, name: user.displayName, colour: user.colour };
   }
 
-  override onJoin(client: Client<{ auth: Identity }>): void {
+  override async onJoin(client: Client<{ auth: Identity }>): Promise<void> {
     const identity = client.auth!;
     const [x, y, z] = this.world.spawnPosition(this.rng(), this.rng());
     const player = new Player();
@@ -336,6 +544,9 @@ export class PlaceRoom extends Room<{
       grounded: true,
       name: maskText(identity.name),
       colour: identity.colour,
+      seat: "",
+      hand: "",
+      head: "",
     });
     this.state.players.set(client.sessionId, player);
     this.world.addAvatar(client.sessionId, player);
@@ -343,6 +554,12 @@ export class PlaceRoom extends Room<{
     client.view = new StateView();
     this.visible.set(client.sessionId, new Set());
     this.updateInterest();
+    const items = ((await getUser(this.db, identity.userId))?.inventory ?? []).filter((i) =>
+      this.templates.has(i),
+    );
+    this.inventories.set(client.sessionId, items);
+    const inventory: InventoryMessage = { items };
+    client.send("inventory", inventory);
   }
 
   override async onDrop(client: Client): Promise<void> {
@@ -357,6 +574,9 @@ export class PlaceRoom extends Room<{
     this.chatLimit.forget(client.sessionId);
     this.emoteLimit.forget(client.sessionId);
     this.telemetryLimit.forget(client.sessionId);
+    this.interactLimit.forget(client.sessionId);
+    this.throwLimit.forget(client.sessionId);
+    this.inventories.delete(client.sessionId);
     this.updateInterest();
   }
 

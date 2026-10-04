@@ -11,3 +11,4 @@ One page per decision: context, decision, consequences. Add a new file rather th
 | [005](005-hosting.md)               | Free-tier hosting: Render for the server, optional Cloudflare Pages for the client | Accepted |
 | [006](006-accounts-and-database.md) | Postgres via Drizzle, embedded PGlite fallback, email-link accounts                | Accepted |
 | [007](007-building-agent.md)        | The building agent: a Claude tool-use loop over the Creator SDK                    | Accepted |
+| [008](008-items-and-behaviours.md)  | Items and behaviours as template data, one shared implementation per kind          | Accepted |

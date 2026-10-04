@@ -10,6 +10,10 @@ export interface InputHandlers {
   onToggleLevel(): void;
   onEmote(emote: Emote): void;
   onOpenChat(): void;
+  /** E: use the thing nearby. */
+  onInteract(): void;
+  /** F: throw what I'm holding. */
+  onThrow(): void;
 }
 
 const EMOTE_KEYS: Record<string, Emote> = {
@@ -86,6 +90,8 @@ export class InputController {
       if (!e.repeat) this.jumpQueued = true;
     }
     if (e.code === "KeyM" && !e.repeat) this.handlers.onToggleLevel();
+    if (e.code === "KeyE" && !e.repeat) this.handlers.onInteract();
+    if (e.code === "KeyF" && !e.repeat) this.handlers.onThrow();
     const emote = EMOTE_KEYS[e.code];
     if (emote && !e.repeat) this.handlers.onEmote(emote);
     this.keys.add(e.code);

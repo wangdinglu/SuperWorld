@@ -14,6 +14,13 @@ export function checkContent(
     if (templateIds.has(t.id)) problems.push(`template "${t.id}" is defined twice`);
     templateIds.add(t.id);
   }
+  const items = new Set(templates.templates.filter((t) => t.item).map((t) => t.id));
+  for (const t of templates.templates) {
+    for (const b of t.behaviours) {
+      if (b.kind === "give" && !items.has(b.item))
+        problems.push(`template "${t.id}" gives "${b.item}", which is not an item template`);
+    }
+  }
   const placeIds = new Set(world.places.map((p) => p.id));
   if (!placeIds.has(world.spawnPlace))
     problems.push(`spawnPlace "${world.spawnPlace}" is not a place`);

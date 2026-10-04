@@ -61,6 +61,26 @@ function instanceIndex(scene: Scene, id: string): number {
   return index;
 }
 
+/** What players can do with a template, in a few words for the agent. */
+function describeUse(t: Template): string | undefined {
+  const uses: string[] = [];
+  if (t.item)
+    uses.push(
+      t.item.use === "wear"
+        ? "wear it"
+        : t.item.use === "throw"
+          ? "take and throw it"
+          : "take and hold it",
+    );
+  for (const b of t.behaviours) {
+    if (b.kind === "sit") uses.push(`sit (${b.seats.length} seat${b.seats.length > 1 ? "s" : ""})`);
+    if (b.kind === "give") uses.push(`take a ${b.item}`);
+    if (b.kind === "play") uses.push(`play it (${b.sound})`);
+    if (b.kind === "screen") uses.push("read it (set its text with scene_set_text)");
+  }
+  return uses.length > 0 ? uses.join(", ") : undefined;
+}
+
 function freshId(scene: Scene, template: string): string {
   const base = template
     .split("/")
@@ -78,7 +98,7 @@ export const TOOLS = [
     name: "library_list_templates",
     module: "library",
     description:
-      "List the objects that can be placed in the space: their template ids, names and rough size in metres. Call this before placing objects if you don't know the ids.",
+      "List the objects that can be placed in the space: their template ids, names, part counts and what players can do with them (sit, take an item, play, read). Call this before placing objects if you don't know the ids.",
     input: z.strictObject({}),
     readOnly: true,
     run: (ctx) => ({
@@ -86,6 +106,7 @@ export const TOOLS = [
         id: t.id,
         name: t.name,
         parts: t.parts.length,
+        ...(describeUse(t) ? { players: describeUse(t) } : {}),
       })),
       summary: "Listed the object library",
     }),
@@ -107,6 +128,7 @@ export const TOOLS = [
           z: round(i.at[2]),
           yawDegrees: round((i.yaw * 180) / Math.PI),
           scale: i.scale,
+          ...(i.text !== undefined ? { text: i.text } : {}),
         })),
       },
       summary: "Listed the objects in the space",
@@ -182,6 +204,26 @@ export const TOOLS = [
           { op: "remove", path: `/instances/${index}` },
         ],
         summary: `Removed ${input.id}`,
+      };
+    },
+  }),
+  defineTool({
+    name: "scene_set_text",
+    module: "scene",
+    description:
+      "Set the text an object shows when a player reads it (for objects players can read, like a notice board). Plain text, up to 500 characters.",
+    input: z.strictObject({ id: z.string(), text: z.string().max(500) }),
+    run: (ctx, input) => {
+      const index = instanceIndex(ctx.scene, input.id);
+      const current = ctx.scene.instances[index]!;
+      const template = ctx.templates.get(current.template);
+      if (!template?.behaviours.some((b) => b.kind === "screen"))
+        throw new ToolError(`${input.id} has nothing to read; only objects like notice boards do.`);
+      return {
+        patch: [
+          { op: "replace", path: `/instances/${index}`, value: { ...current, text: input.text } },
+        ],
+        summary: `Changed the text on ${input.id}`,
       };
     },
   }),

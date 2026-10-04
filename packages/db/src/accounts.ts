@@ -36,6 +36,23 @@ export async function updateProfile(
   await db.update(users).set(input).where(eq(users.id, id));
 }
 
+/**
+ * Adds an item to a player's inventory (once; the oldest falls out past `max`).
+ * Returns the new inventory.
+ */
+export async function addToInventory(
+  db: Db,
+  id: string,
+  item: string,
+  max: number,
+): Promise<string[]> {
+  const user = await getUser(db, id);
+  if (!user) return [];
+  const items = [...user.inventory.filter((i) => i !== item), item].slice(-max);
+  await db.update(users).set({ inventory: items }).where(eq(users.id, id));
+  return items;
+}
+
 /** Starts an email sign-in. Returns the raw one-time token to put in the emailed link. */
 export async function startEmailLogin(
   db: Db,

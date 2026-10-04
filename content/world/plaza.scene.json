@@ -391,6 +391,49 @@
       "template": "prim/portal-arch",
       "at": [29.7, 0, 29.7],
       "yaw": 3.93
+    },
+    {
+      "id": "ball-basket-1",
+      "template": "prim/ball-basket",
+      "at": [-6, 0, 15],
+      "yaw": 0
+    },
+    {
+      "id": "hat-stand-1",
+      "template": "prim/hat-stand",
+      "at": [6, 0, 15.5],
+      "yaw": 0
+    },
+    {
+      "id": "lantern-post-1",
+      "template": "prim/lantern-post",
+      "at": [-10, 0, -10],
+      "yaw": 0.8
+    },
+    {
+      "id": "chimes-1",
+      "template": "prim/chimes",
+      "at": [12, 0, -8],
+      "yaw": -1
+    },
+    {
+      "id": "drum-1",
+      "template": "prim/drum",
+      "at": [-12, 0, -7],
+      "yaw": 0
+    },
+    {
+      "id": "drum-2",
+      "template": "prim/drum",
+      "at": [-13.2, 0, -8.2],
+      "yaw": 0
+    },
+    {
+      "id": "notice-1",
+      "template": "prim/notice-board",
+      "at": [0, 0, 18.5],
+      "yaw": 3.1416,
+      "text": "Welcome to SuperWorld! Sit on a bench, grab a ball from the basket and throw it (F), try on a party hat, or play the drums and chimes. Press E (or tap the button) to use things nearby."
     }
   ],
   "portals": [

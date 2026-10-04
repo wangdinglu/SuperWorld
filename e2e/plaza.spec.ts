@@ -62,3 +62,35 @@ test("walking moves the avatar on the server", async ({ browser }) => {
     `inputs ${JSON.stringify(stats)}, focus ${focus}`,
   ).toBeGreaterThan(0.5);
 });
+
+test("a player takes a ball, throws it and keeps it in the bag", async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 480, height: 320 } });
+  await enter(page, "Juggler", "?tier=low");
+  type Hook = {
+    me(): { x: number; z: number; hand: string; seat: string };
+    walkTo(x: number, z: number): void;
+    props(): number;
+    interaction(): string | undefined;
+  };
+  const hook = <T>(fn: (h: Hook) => T) =>
+    page.evaluate(`(${fn.toString()})(window.__superworld)`) as Promise<T>;
+
+  // The ball basket stands near the arrival point.
+  await hook((h) => h.walkTo(-4.9, 15));
+  await expect.poll(() => hook((h) => h.interaction()), { timeout: 30_000 }).toBe("take");
+  await expect(page.getByRole("button", { name: /Take a ball/ })).toBeVisible();
+  await page.screenshot({ path: "test-results/items-basket.png" });
+  await page.keyboard.press("KeyE");
+  await expect.poll(() => hook((h) => h.me().hand), { timeout: 10_000 }).toBe("item/ball");
+
+  await page.getByRole("button", { name: /Throw/ }).click();
+  await expect.poll(() => hook((h) => h.props()), { timeout: 10_000 }).toBe(1);
+  await expect.poll(() => hook((h) => h.me().hand)).toBe("");
+
+  // The bag remembers the ball.
+  await page.getByRole("button", { name: "Bag" }).click();
+  await expect(page.locator(".bag")).toContainText("Ball");
+  await page.getByRole("button", { name: "Close bag" }).click();
+
+  await page.close();
+});

@@ -1,5 +1,23 @@
 import { Callbacks, Client, Predict, type Room } from "@colyseus/sdk";
-import { initPhysics, PlaceWorld, steerTowards, TICK_RATE } from "@superworld/core";
+import {
+  type Interaction,
+  initPhysics,
+  INVENTORY_MAX,
+  MAX_PROPS,
+  nearestInteraction,
+  PlaceWorld,
+  PROP_LIFETIME_S,
+  type PropState,
+  seatKey,
+  sitOn,
+  standUp,
+  steerTowards,
+  stepProp,
+  templateReach,
+  throwFrom,
+  TICK_RATE,
+  wantsToStand,
+} from "@superworld/core";
 import {
   type ChatBroadcast,
   type AgentProgressMessage,
@@ -7,10 +25,13 @@ import {
   type EditResultMessage,
   type Emote,
   type EmoteBroadcast,
+  type InventoryMessage,
   type KnockBroadcast,
   MoveInput,
   type PlaceInfo,
+  type PlayBroadcast,
   type Player,
+  type Prop,
   PREDICTED_FIELDS,
   PROTOCOL_VERSION,
   quantiseAxis,
@@ -22,6 +43,7 @@ import {
   applyTier,
   type BuiltPlace,
   buildPlace,
+  buildTemplateObject,
   CameraRig,
   createRenderer,
   detectTier,
@@ -31,7 +53,7 @@ import {
   type Tier,
   TIERS,
 } from "@superworld/render";
-import { Scene, TemplateLibrary, World } from "@superworld/schema";
+import { type ResolvedStyle, Scene, TemplateLibrary, World } from "@superworld/schema";
 import { applyPatch, type PatchOp } from "@superworld/sdk";
 import { resolveStyle } from "@superworld/style";
 import * as THREE from "three/webgpu";
@@ -41,6 +63,8 @@ import worldJson from "../../../content/world/world.json";
 import { serverUrl } from "./config.ts";
 import { account } from "./account.ts";
 import { InputController } from "./input.ts";
+import { playNote } from "./sound.ts";
+import { load, save } from "./storage.ts";
 import {
   cameraLevel,
   agentBusy,
@@ -48,7 +72,10 @@ import {
   chatLog,
   chatOpen,
   editResult,
+  equipped,
   hint,
+  interaction,
+  inventory,
   knocks,
   muted,
   people,
@@ -57,6 +84,7 @@ import {
   place,
   pushChat,
   renderInfo,
+  screen,
   soloMode,
   status,
   travel,
@@ -65,20 +93,24 @@ import {
 const world = World.parse(worldJson);
 const templates = TemplateLibrary.parse(templatesJson);
 const plazaScene = Scene.parse(plazaJson);
+const templateMap = new Map(templates.templates.map((t) => [t.id, t]));
 
 export type Destination = { kind: "plaza" } | { kind: "space"; spaceId: string };
 
 /** Rough radius of a template on the ground, in metres. */
 function footprint(templateId: string): number {
-  const template = templates.templates.find((t) => t.id === templateId);
-  if (!template) return 1.5;
-  return Math.max(
-    ...template.parts.map((p) => {
-      const reach = p.shape === "box" ? Math.hypot(p.size[0], p.size[2]) / 2 : p.radius;
-      return Math.hypot(p.at[0], p.at[2]) + reach;
-    }),
-  );
+  const template = templateMap.get(templateId);
+  return template ? templateReach(template) : 1.5;
 }
+
+/** A 3D object for an item, with its own geometry. */
+interface ItemObject {
+  object: THREE.Object3D;
+  dispose(): void;
+}
+
+/** The fields of a loose item the client draws. */
+type PropView = Pick<Prop, "item" | "x" | "y" | "z" | "resting">;
 
 /** Thrown when a private space needs a knock before joining. */
 class KnockRequired extends Error {}
@@ -95,6 +127,10 @@ interface AvatarView {
   lastPos: THREE.Vector3;
   speed: number;
   yaw: number;
+  hand: string;
+  head: string;
+  held?: ItemObject;
+  worn?: ItemObject;
 }
 
 /** The running client: renderer, connection, prediction and the frame loop. */
@@ -109,6 +145,15 @@ export class Game {
   private physics!: PlaceWorld;
   private built: BuiltPlace | undefined;
   private scene: Scene = plazaScene;
+  private style: ResolvedStyle = resolveStyle(world.defaultStyle, plazaScene.style);
+  private readonly propViews = new Map<string, ItemObject & { item: string }>();
+  /** Loose items in solo practice (online, the server simulates them). */
+  private readonly soloProps = new Map<string, PropState & { item: string }>();
+  private nextSoloProp = 1;
+  private readonly soloNotes = new Map<string, number>();
+  private currentInteraction: Interaction | undefined;
+  /** The seat I stood up from before the server confirmed it (see setupPrediction). */
+  private leftSeat = "";
   private profile = { name: "", colour: "" };
   private readonly avatars = new Map<string, AvatarView>();
   private pickables: THREE.Object3D[] = [];
@@ -187,14 +232,22 @@ export class Game {
       onToggleLevel: () => this.toggleLevel(),
       onEmote: (e) => this.emote(e),
       onOpenChat: () => (chatOpen.value = true),
+      onInteract: () => this.interact(),
+      onThrow: () => this.throwItem(),
     });
 
     // Test hook: the authoritative position of my avatar, as the server last sent it.
     (window as unknown as { __superworld: unknown }).__superworld = {
       me: () => {
         const p = this.currentMe();
-        return p ? { x: p.x, y: p.y, z: p.z } : undefined;
+        return p ? { x: p.x, y: p.y, z: p.z, seat: p.seat, hand: p.hand, head: p.head } : undefined;
       },
+      props: () => [...this.currentProps()].length,
+      /** Walks to a point, as a tap there would. */
+      walkTo: (x: number, z: number) => {
+        this.tapTarget = { x, z };
+      },
+      interaction: () => this.currentInteraction?.kind,
       inputs: () => this.inputStats(),
       room: () => ({
         id: this.room?.roomId,
@@ -262,6 +315,10 @@ export class Game {
     this.predict = undefined;
     for (const id of [...this.avatars.keys()]) this.removeAvatar(id);
     knocks.value = [];
+    for (const id of [...this.propViews.keys()]) this.removePropView(id);
+    interaction.value = null;
+    this.currentInteraction = undefined;
+    screen.value = null;
     editResult.value = null;
     agentLog.value = [];
     agentBusy.value = null;
@@ -292,6 +349,7 @@ export class Game {
       this.built.dispose();
     }
     const style = resolveStyle(world.defaultStyle, next.style);
+    this.style = style;
     this.built = buildPlace(next, templates, style);
     this.three.add(this.built.root);
     this.three.fog = fogFor(style);
@@ -329,6 +387,15 @@ export class Game {
     });
     this.room.onMessage("emote", (m: EmoteBroadcast) => {
       this.avatars.get(m.sessionId)?.mannequin.playEmote(m.emote);
+    });
+    this.room.onMessage("play", (m: PlayBroadcast) => {
+      const inst = this.scene.instances.find((i) => i.id === m.instance);
+      const me = this.avatars.get(this.myId)?.mannequin.root.position;
+      const d = inst && me ? Math.hypot(inst.at[0] - me.x, inst.at[2] - me.z) : 0;
+      playNote(m.sound, m.note, 1 - d / 30);
+    });
+    this.room.onMessage("inventory", (m: InventoryMessage) => {
+      inventory.value = m.items;
     });
     this.room.onMessage("scene-patch", (m: ScenePatchBroadcast) => {
       this.showScene(applyPatch(this.scene, m.patch as PatchOp[]));
@@ -385,8 +452,17 @@ export class Game {
       input,
       fields: [...PREDICTED_FIELDS],
       // this.physics may be rebuilt by an edit; always step against the current one.
-      step: (ctx, state, command) =>
-        this.physics.stepAvatar(myId, state, toCommand(command), ctx.dt),
+      step: (ctx, state, command) => {
+        const cmd = toCommand(command);
+        if (me.seat !== this.leftSeat) this.leftSeat = "";
+        if (me.seat && !this.leftSeat) {
+          // Seated: stay put until I move; then stand up once, ahead of the server confirming it.
+          if (!wantsToStand(cmd)) return;
+          this.leftSeat = me.seat;
+          standUp(state);
+        }
+        this.physics.stepAvatar(myId, state, cmd, ctx.dt);
+      },
       smoothMs: 80,
     });
     this.inputStats = () => ({ sent: input.sentCount, acked: input.lastProcessed });
@@ -409,7 +485,20 @@ export class Game {
     soloMode.value = true;
     this.myId = "solo";
     const [x, y, z] = this.physics.spawnPosition(Math.random(), Math.random());
-    const me = { x, y, z, vy: 0, yaw: Math.PI, grounded: true, name, colour } as unknown as Player;
+    const me = {
+      x,
+      y,
+      z,
+      vy: 0,
+      yaw: Math.PI,
+      grounded: true,
+      name,
+      colour,
+      seat: "",
+      hand: "",
+      head: "",
+    } as unknown as Player;
+    inventory.value = load<string[]>("inventory", []).filter((i) => templateMap.has(i));
     this.soloMe = me;
     this.soloPrev = { x, y, z, yaw: Math.PI };
     this.physics.addAvatar(this.myId, me);
@@ -424,12 +513,16 @@ export class Game {
     this.sendInput = (move, run, jump) => {
       const p = this.soloMe!;
       this.soloPrev = { x: p.x, y: p.y, z: p.z, yaw: p.yaw };
-      this.physics.stepAvatar(
-        this.myId,
-        p,
-        { moveX: move[0], moveZ: move[1], run, jump },
-        1 / TICK_RATE,
-      );
+      const cmd = { moveX: move[0], moveZ: move[1], run, jump };
+      if (p.seat && wantsToStand(cmd)) {
+        p.seat = "";
+        standUp(p);
+      }
+      if (!p.seat) this.physics.stepAvatar(this.myId, p, cmd, 1 / TICK_RATE);
+      for (const [id, prop] of this.soloProps) {
+        stepProp(prop, 1 / TICK_RATE, this.scene.environment.ground.radius);
+        if (prop.age > PROP_LIFETIME_S) this.soloProps.delete(id);
+      }
       this.soloAlpha = 0;
     };
   }
@@ -491,6 +584,8 @@ export class Game {
       lastPos: new THREE.Vector3(player.x, player.y, player.z),
       speed: 0,
       yaw: player.yaw,
+      hand: "",
+      head: "",
     });
     this.refreshPeople();
   }
@@ -499,6 +594,8 @@ export class Game {
     const view = this.avatars.get(sessionId);
     if (!view) return;
     this.three.remove(view.mannequin.root);
+    view.held?.dispose();
+    view.worn?.dispose();
     view.mannequin.dispose();
     view.tag.remove();
     this.avatars.delete(sessionId);
@@ -540,6 +637,163 @@ export class Game {
 
   report(sessionId: string, reason: string): void {
     if (!this.solo) this.room.send("report", { sessionId, reason });
+  }
+
+  // ---------- items and behaviours ----------
+
+  private itemObject(item: string): ItemObject | undefined {
+    const template = templateMap.get(item);
+    return template ? buildTemplateObject(template, this.style) : undefined;
+  }
+
+  /** Keeps what an avatar holds and wears in step with the state. */
+  private syncItems(id: string, view: AvatarView): void {
+    const p = view.player;
+    if (view.hand !== (p.hand ?? "")) {
+      view.hand = p.hand ?? "";
+      view.held?.dispose();
+      view.held = view.hand ? this.itemObject(view.hand) : undefined;
+      view.mannequin.setHeld(view.held?.object ?? null);
+    }
+    if (view.head !== (p.head ?? "")) {
+      view.head = p.head ?? "";
+      view.worn?.dispose();
+      view.worn = view.head ? this.itemObject(view.head) : undefined;
+      view.mannequin.setWorn(view.worn?.object ?? null);
+    }
+    view.mannequin.setSeated(Boolean(p.seat));
+    if (id === this.myId) {
+      const canThrow = templateMap.get(view.hand)?.item?.use === "throw";
+      const e = equipped.value;
+      if (e.hand !== view.hand || e.head !== view.head || e.canThrow !== canThrow)
+        equipped.value = { hand: view.hand, head: view.head, canThrow };
+    }
+  }
+
+  private currentProps(): Iterable<[string, PropView]> {
+    if (this.solo) return this.soloProps;
+    const props = this.room?.state.props as Map<string, Prop> | undefined;
+    return props ? props.entries() : [];
+  }
+
+  /** Draws loose items where the state says they are, smoothing between updates. */
+  private syncProps(dt: number): void {
+    const seen = new Set<string>();
+    for (const [id, prop] of this.currentProps()) {
+      seen.add(id);
+      let view = this.propViews.get(id);
+      if (!view) {
+        const made = this.itemObject(prop.item);
+        if (!made) continue;
+        view = { ...made, item: prop.item };
+        view.object.position.set(prop.x, prop.y - 0.15, prop.z);
+        this.three.add(view.object);
+        this.propViews.set(id, view);
+      }
+      const o = view.object;
+      const k = this.solo ? 1 : Math.min(1, dt * 15);
+      o.position.x += (prop.x - o.position.x) * k;
+      o.position.y += (prop.y - 0.15 - o.position.y) * k;
+      o.position.z += (prop.z - o.position.z) * k;
+      if (!prop.resting) o.rotation.x += dt * 8;
+    }
+    for (const id of [...this.propViews.keys()]) if (!seen.has(id)) this.removePropView(id);
+  }
+
+  private removePropView(id: string): void {
+    const view = this.propViews.get(id);
+    if (!view) return;
+    this.three.remove(view.object);
+    view.dispose();
+    this.propViews.delete(id);
+  }
+
+  /** Finds the nearest thing I can use and shows it on the use button. */
+  private updateInteraction(pos: THREE.Vector3): void {
+    const taken = new Set<string>();
+    for (const view of this.avatars.values()) if (view.player.seat) taken.add(view.player.seat);
+    const found = nearestInteraction(this.scene, templateMap, pos.x, pos.z, {
+      takenSeats: taken,
+      props: this.currentProps(),
+    });
+    this.currentInteraction = found;
+    const label = found?.label ?? "";
+    if ((interaction.value?.label ?? "") !== label)
+      interaction.value = found ? { label, kind: found.kind } : null;
+  }
+
+  /** Uses the nearest thing: sit, take, pick up, play or read. */
+  interact(): void {
+    const i = this.currentInteraction;
+    if (!i) return;
+    if (i.kind === "screen") {
+      screen.value = { title: i.title, text: i.text };
+      return;
+    }
+    if (!this.solo) {
+      this.room.send("interact", i.kind === "pickup" ? { prop: i.prop } : { instance: i.instance });
+      return;
+    }
+    const me = this.soloMe!;
+    switch (i.kind) {
+      case "sit":
+        me.seat = seatKey(i.instance, i.seat);
+        sitOn(me, i);
+        this.soloPrev = { x: me.x, y: me.y, z: me.z, yaw: me.yaw };
+        break;
+      case "take":
+        this.soloGive(i.item);
+        break;
+      case "pickup":
+        this.soloProps.delete(i.prop);
+        this.soloGive(i.item);
+        break;
+      case "play": {
+        const n = this.soloNotes.get(i.instance) ?? 0;
+        this.soloNotes.set(i.instance, n + 1);
+        playNote(i.sound, i.notes[n % i.notes.length]!);
+        this.avatars.get(this.myId)?.mannequin.playEmote("play");
+        break;
+      }
+    }
+  }
+
+  private soloWield(item: string): void {
+    const use = templateMap.get(item)?.item?.use;
+    if (use) this.soloMe![use === "wear" ? "head" : "hand"] = item;
+  }
+
+  private soloGive(item: string): void {
+    this.soloWield(item);
+    inventory.value = [...inventory.value.filter((i) => i !== item), item].slice(-INVENTORY_MAX);
+    save("inventory", inventory.value);
+  }
+
+  /** Throws what I'm holding, if it's throwable. */
+  throwItem(): void {
+    if (!equipped.value.canThrow) return;
+    if (!this.solo) return void this.room.send("throw");
+    const me = this.soloMe!;
+    if (this.soloProps.size >= MAX_PROPS)
+      this.soloProps.delete(this.soloProps.keys().next().value!);
+    this.soloProps.set(`p${this.nextSoloProp++}`, { ...throwFrom(me), item: me.hand });
+    me.hand = "";
+    this.avatars.get(this.myId)?.mannequin.playEmote("throw");
+  }
+
+  /** Holds or wears an item from my inventory. */
+  equip(item: string): void {
+    if (this.solo) this.soloWield(item);
+    else this.room.send("equip", { item });
+  }
+
+  unequip(slot: "hand" | "head"): void {
+    if (this.solo) this.soloMe![slot] = "";
+    else this.room.send("unequip", { slot });
+  }
+
+  closeScreen(): void {
+    screen.value = null;
   }
 
   // ---------- spaces and building ----------
@@ -704,8 +958,10 @@ export class Game {
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       view.yaw += diff * Math.min(1, dt * 12);
       view.mannequin.root.rotation.y = view.yaw;
-      view.mannequin.update(dt, view.speed, p.grounded || y < 0.05);
+      this.syncItems(id, view);
+      view.mannequin.update(dt, view.speed, p.grounded || y < 0.05 || Boolean(p.seat));
     }
+    this.syncProps(dt);
 
     // 3. Camera, sun and overlays follow my avatar.
     const mine = this.avatars.get(this.myId);
@@ -715,6 +971,7 @@ export class Game {
       this.sun.target.position.copy(this.sunTarget);
       this.sun.position.set(this.sunTarget.x + 18, 60, this.sunTarget.z + 12);
       this.updatePortalHint(mine.mannequin.root.position);
+      if (this.framesSinceReport % 6 === 0) this.updateInteraction(mine.mannequin.root.position);
     }
     this.updateTags(now);
     this.tapMarker.rotation.y += dt * 2;

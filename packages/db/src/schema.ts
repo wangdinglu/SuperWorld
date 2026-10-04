@@ -22,6 +22,8 @@ export const users = pgTable(
     displayName: text("display_name").notNull(),
     colour: text("colour").notNull(),
     email: text("email"),
+    /** Item template ids carried between places, newest last. */
+    inventory: jsonb("inventory").$type<string[]>().notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
   },

@@ -8,6 +8,8 @@ export const Instance = z.object({
   at: Vec3,
   yaw: z.number().default(0),
   scale: z.number().positive().max(20).default(1),
+  /** Text for objects that show some (a notice board's screen). */
+  text: z.string().max(500).optional(),
 });
 export type Instance = z.infer<typeof Instance>;
 

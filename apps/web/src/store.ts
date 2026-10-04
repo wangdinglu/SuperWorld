@@ -78,3 +78,15 @@ export const agentLog = signal<
   { id: number; from: "you" | "ai"; text: string; steps?: string[]; error?: boolean }[]
 >([]);
 export const agentBusy = signal<{ state: "thinking" | "working"; step?: string } | null>(null);
+
+/** The nearest thing I can use (E, or the use button). */
+export const interaction = signal<{ label: string; kind: string } | null>(null);
+/** Items I carry between places, and what's in my hand and on my head. */
+export const inventory = signal<string[]>([]);
+export const equipped = signal<{ hand: string; head: string; canThrow: boolean }>({
+  hand: "",
+  head: "",
+  canThrow: false,
+});
+/** An open screen (a notice board). */
+export const screen = signal<{ title: string; text: string } | null>(null);

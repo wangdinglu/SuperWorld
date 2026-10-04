@@ -20,6 +20,18 @@ const AVATAR_GROUPS = (AVATAR << 16) | STATIC;
 
 const yawQuat = (yaw: number) => ({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
 
+/** A point given relative to an instance, in place coordinates. */
+export function placeOffset(offset: Vec3, at: Vec3, yaw: number, scale: number): Vec3 {
+  const [px, py, pz] = offset;
+  const c = Math.cos(yaw);
+  const s = Math.sin(yaw);
+  return [
+    at[0] + (px * c + pz * s) * scale,
+    at[1] + py * scale,
+    at[2] + (-px * s + pz * c) * scale,
+  ];
+}
+
 /** Where a part sits in place coordinates, given the instance transform. */
 export function placePart(
   part: Part,
@@ -27,17 +39,7 @@ export function placePart(
   yaw: number,
   scale: number,
 ): { pos: Vec3; yaw: number } {
-  const [px, py, pz] = part.at;
-  const c = Math.cos(yaw);
-  const s = Math.sin(yaw);
-  return {
-    pos: [
-      at[0] + (px * c + pz * s) * scale,
-      at[1] + py * scale,
-      at[2] + (-px * s + pz * c) * scale,
-    ],
-    yaw: yaw + part.yaw,
-  };
+  return { pos: placeOffset(part.at, at, yaw, scale), yaw: yaw + part.yaw };
 }
 
 function partCollider(part: Part, scale: number): RAPIER.ColliderDesc {

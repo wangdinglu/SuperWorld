@@ -114,6 +114,30 @@ describe("EditSession", () => {
     expect(s.dirty).toBe(false);
   });
 
+  it("sets text only on objects players can read, and says what objects do", () => {
+    const s = new EditSession(empty(), templates);
+    s.call("scene_place_object", { template: "prim/notice-board", x: 0, z: 0 }, "agent");
+    s.call("scene_place_object", { template: "prim/bench", x: 4, z: 0 }, "agent");
+    expect(
+      s.call("scene_set_text", { id: "notice-board-1", text: "Party at eight" }, "agent").ok,
+    ).toBe(true);
+    expect(s.scene.instances[0]!.text).toBe("Party at eight");
+    expect(s.call("scene_set_text", { id: "bench-1", text: "x" }, "agent")).toMatchObject({
+      ok: false,
+      error: expect.stringContaining("nothing to read"),
+    });
+    const listed = s.call("library_list_templates", {}, "agent");
+    const byId = new Map(
+      (listed.ok ? (listed.output as { id: string; players?: string }[]) : []).map((t) => [
+        t.id,
+        t.players,
+      ]),
+    );
+    expect(byId.get("prim/bench")).toBe("sit (2 seats)");
+    expect(byId.get("prim/ball-basket")).toBe("take a item/ball");
+    expect(byId.get("prim/tree")).toBeUndefined();
+  });
+
   it("records the combined patch, which replays to the same scene", () => {
     const s = new EditSession(empty(), templates);
     s.call("scene_place_object", { template: "prim/fountain", x: 0, z: 0 }, "agent");
